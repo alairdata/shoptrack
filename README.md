@@ -19,7 +19,7 @@ A simple mobile-first inventory app built with Next.js, Supabase Postgres and Ve
 - **Revenue:** sale price × units sold.
 - **Gross profit:** (sale price − original unit cost) × units sold.
 - **Operating expenses:** amounts entered under Expenses.
-- **Net profit:** gross profit − operating expenses. Does not include taxes, returns, discounts or payment fees unless recorded as expenses.
+- **Net profit:** gross profit − operating expenses. Sales count at the price actually charged, so discounts are included. Does not include taxes, returns or payment fees unless recorded as expenses.
 - Purchases of new stock belong under Inventory, not operating expenses.
 
 ## Notes and limitations
@@ -27,6 +27,6 @@ A simple mobile-first inventory app built with Next.js, Supabase Postgres and Ve
 - Inventory is saved in Supabase and protected by per-user row-level security; each account sees only its own records.
 - Sales are transactional and stock cannot go negative even if two devices sell at the same time.
 - The app requires an internet connection for data entry; the PWA is installable but **does not provide offline data entry**.
-- This MVP does not yet support stock replenishment on existing item rows, sale refunds, receipts, discounts, item images, multiple employees sharing the same inventory, cash balance reconciliation or detailed profit reports. Add those before relying on it for more complex operations.
-- Expense deletion is supported; inventory and sales history are intentionally not deletable from the interface to reduce accidental data loss.
+- This MVP does not yet support sale refunds, receipts, item images, multiple employees sharing the same inventory, cash balance reconciliation or detailed profit reports. Add those before relying on it for more complex operations.
+- Expenses and sales can be deleted after a confirmation. Deleting a sale returns its units to stock. Removing an item hides it from the shop and keeps its past sales.
 - For accounting or tax reporting, reconcile with receipts and consult an accountant.

@@ -879,10 +879,12 @@ export default function Home() {
                       <article className="product" key={i.id}>
                         <div>
                           <span className="product-category">{i.category}</span>
-                          <h2 className="product-name">{i.name}</h2>
+                          <div className="product-head">
+                            <h2 className="product-name">{i.name}</h2>
+                            <strong className="product-price">{money(i.price)}</strong>
+                          </div>
                         </div>
                         <div>
-                          <strong className="product-price">{money(i.price)}</strong>
                           <p className="product-meta">{i.quantity} available · {money(i.price - i.cost)} profit each</p>
                         </div>
                         <div className="product-foot">

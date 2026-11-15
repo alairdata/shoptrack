@@ -585,7 +585,11 @@ export default function Home() {
   const revenue = sales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
   const gross = sales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
   const expenseTotal = expenses.reduce((s, i) => s + Number(i.amount), 0);
-  const net = gross - expenseTotal;
+  const todaySales = sales.filter(s => new Date(s.created_at).toDateString() === new Date().toDateString());
+  const todayTotal = todaySales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const todayCount = todaySales.reduce((n, s) => n + s.quantity, 0);
+  const soldByItem = sales.reduce<Record<string, number>>((m, s) => { m[s.item_id] = (m[s.item_id] || 0) + s.quantity; return m; }, {});
+  const overallCount = (i: Item) => i.quantity + (soldByItem[i.id] || 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
   const outOfStock = activeItems.filter(i => i.quantity === 0);
 
@@ -677,10 +681,10 @@ export default function Home() {
             </section>
 
             <section className="stats" aria-label="Shop totals">
-              <div className="stat"><span className="stat-label">Total sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from items sold</span></div>
-              <div className="stat"><span className="stat-label">Profit from sales</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
-              <div className="stat"><span className="stat-label">Shop expenses</span><strong className="stat-value">{money(expenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
-              <div className="stat"><span className="stat-label">Profit after expenses</span><strong className="stat-value">{money(net)}</strong><span className="stat-note">{net < 0 ? 'Expenses are higher than sales profit so far' : 'Profit from sales minus expenses'}</span></div>
+              <div className="stat"><span className="stat-label">All-time sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from every item ever sold</span></div>
+              <div className="stat"><span className="stat-label">Your all-time profit</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
+              <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(expenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
+              <div className="stat"><span className="stat-label">Today&apos;s sales</span><strong className="stat-value">{money(todayTotal)}</strong><span className="stat-note">{todayCount === 0 ? 'No sales yet today' : `${todayCount} ${todayCount === 1 ? 'piece' : 'pieces'} sold today`}</span></div>
             </section>
 
             {outOfStock.length > 0 && (
@@ -809,6 +813,7 @@ export default function Home() {
                           <tr>
                             <th scope="col">Item</th>
                             <th scope="col">Category</th>
+                            <th scope="col">Overall count</th>
                             <th scope="col">In stock</th>
                             <th scope="col">Buying price</th>
                             <th scope="col">Selling price</th>
@@ -821,6 +826,7 @@ export default function Home() {
                             <tr key={i.id}>
                               <td className="name">{i.name}</td>
                               <td>{i.category}</td>
+                              <td>{overallCount(i)}</td>
                               <td><StockCount quantity={i.quantity} /></td>
                               <td>{money(i.cost)}</td>
                               <td>{money(i.price)}</td>
@@ -847,6 +853,7 @@ export default function Home() {
                           <span>{i.quantity > LOW_STOCK ? `${i.quantity} in stock` : <StockCount quantity={i.quantity} />}</span>
                         </div>
                         <dl>
+                          <div><dt>Overall count</dt><dd>{overallCount(i)}</dd></div>
                           <div><dt>Buying</dt><dd>{money(i.cost)}</dd></div>
                           <div><dt>Selling</dt><dd>{money(i.price)}</dd></div>
                           <div><dt>Profit each</dt><dd>{money(i.price - i.cost)}</dd></div>

@@ -687,6 +687,14 @@ export default function Home() {
               <div className="stat"><span className="stat-label">Today&apos;s sales</span><strong className="stat-value">{money(todayTotal)}</strong><span className="stat-note">{todayCount === 0 ? 'No sales yet today' : `${todayCount} ${todayCount === 1 ? 'piece' : 'pieces'} sold today`}</span></div>
             </section>
 
+            <section className="hero" aria-label="Cost of items sold">
+              <div>
+                <span className="hero-label">Cost of items sold</span>
+                <strong className="hero-value">{money(revenue - gross)}</strong>
+                <span className="hero-note">What you paid for everything you have sold. All-time sales minus your all-time profit.</span>
+              </div>
+            </section>
+
             {outOfStock.length > 0 && (
               <section className="stock-alert" aria-label="Finished items">
                 <AlertTriangle size={21} aria-hidden="true" />

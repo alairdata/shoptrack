@@ -609,11 +609,6 @@ export default function Home() {
     (!query.trim() || `${s.item_name} ${saleCategory(s)}`.toLowerCase().includes(query.trim().toLowerCase())));
   const addableItems = [...activeItems].sort((a, b) => a.name.localeCompare(b.name));
   const shownAddable = addableItems.filter(i => !query.trim() || i.name.toLowerCase().includes(query.trim().toLowerCase()));
-  const categorySales = Array.from(sales.reduce((m, s) => {
-    const label = saleCategory(s) || 'Other / old items';
-    return m.set(label, (m.get(label) || 0) + s.quantity);
-  }, new Map<string, number>())).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const maxCategorySales = Math.max(1, ...categorySales.map(c => c[1]));
   const current = tabs.find(t => t.name === tab)!;
   const noMatch = <p className="empty-block">No items match your search.</p>;
 
@@ -738,22 +733,6 @@ export default function Home() {
                 )}
               </section>
             </div>
-
-            <section className="panel chart-panel">
-              <h2>Top 10 best-selling groups</h2>
-              <p className="muted">Number of pieces sold, not money made.</p>
-              {categorySales.length === 0 ? <p className="empty">Your chart will appear after you record sales.</p> : (
-                <ol className="chart">
-                  {categorySales.map(([name, count]) => (
-                    <li key={name}>
-                      <span className="chart-name">{name}</span>
-                      <span className="chart-track" aria-hidden="true"><span style={{width: `${(100 * count) / maxCategorySales}%`}} /></span>
-                      <b>{count}</b>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
           </>
         )}
 

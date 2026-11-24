@@ -303,6 +303,9 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .inventory-name-alert { color: var(--danger); }
 .inventory-quantity { font-size: 1.25rem; font-weight: 800; }
 .inventory-scroll-hint { display: none; }
+.inventory-action-list { display: grid; gap: 0.625rem; }
+.inventory-action-list .btn { justify-content: flex-start; width: 100%; }
+.inventory-more { border: 1px solid var(--line); }
 
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }
@@ -471,6 +474,7 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   .inventory-table table { min-width: 26rem; }
   .inventory-table td.inventory-name { min-width: 8rem; }
   .inventory-table th:first-child, .inventory-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 3px 0 6px rgba(24, 52, 44, 0.08); }
+  .inventory-table th:last-child, .inventory-table td:last-child { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: -3px 0 6px rgba(24, 52, 44, 0.08); }
   .inventory-table th, .inventory-table td { padding: 0.625rem 0.5rem; }
 
   .productgrid { grid-template-columns: minmax(0, 1fr); gap: 0.625rem; }

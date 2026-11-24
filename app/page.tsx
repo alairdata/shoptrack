@@ -1,7 +1,7 @@
 'use client';
 import {useEffect, useId, useRef, useState, type FormEvent, type ReactNode} from 'react';
 import {createClient, type SupabaseClient} from '@supabase/supabase-js';
-import {CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDashboard, LogOut, Minus, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
+import {CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDashboard, LogOut, Minus, MoreHorizontal, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
 
 type Item = {id: string; name: string; category: string; quantity: number; cost: number; price: number; archived?: boolean};
 type Sale = {id: string; item_id: string; item_name: string; quantity: number; unit_cost: number; unit_price: number; list_price?: number | null; created_at: string};
@@ -341,6 +341,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [itemModal, setItemModal] = useState<{item: Item | null} | null>(null);
+  const [actionItem, setActionItem] = useState<Item | null>(null);
   const [expenseModal, setExpenseModal] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmRequest | null>(null);
   const [selling, setSelling] = useState<{item: Item; qty: number; discount: boolean} | null>(null);
@@ -888,7 +889,7 @@ export default function Home() {
                               <td className="inventory-name"><strong className={i.quantity <= LOW_STOCK ? 'inventory-name-alert' : undefined}>{i.name}{i.quantity <= LOW_STOCK && <span className="sr-only">, {i.quantity === 0 ? 'out of stock' : 'running low'}</span>}</strong></td>
                               <td><strong className="inventory-quantity">{i.quantity}</strong></td>
                               <td>{amount(i.quantity * i.cost)}</td>
-                              <td><button type="button" className="btn btn-secondary" aria-label={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}>Remove</button></td>
+                              <td><button type="button" className="icon-btn inventory-more" aria-label={`Actions for ${i.name}`} aria-haspopup="dialog" onClick={() => setActionItem(i)}><MoreHorizontal size={22} aria-hidden="true" /></button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1112,6 +1113,14 @@ export default function Home() {
         )}
       </div>
 
+      {actionItem && (
+        <Modal title={`Actions for ${actionItem.name}`} onClose={() => setActionItem(null)}>
+          <div className="inventory-action-list">
+            <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const item = actionItem; setActionItem(null); openItemModal(item); }}><Pencil size={18} aria-hidden="true" /> Edit item</button>
+            <button type="button" className="btn btn-danger" onClick={() => { const item = actionItem; setActionItem(null); askToRemoveItem(item); }}><Trash2 size={18} aria-hidden="true" /> Remove item</button>
+          </div>
+        </Modal>
+      )}
       {itemModal && (
         <Modal title={itemModal.item ? `Edit ${itemModal.item.name}` : 'Add new stock'} onClose={() => setItemModal(null)}>
           <ItemForm item={itemModal.item} categoryOptions={categoryOptions} defaultCategory={categoryOptions.includes(lastCategory) ? lastCategory : categoryOptions[0]} busy={busy} error={formError} onSubmit={saveItem} onCancel={() => setItemModal(null)} />

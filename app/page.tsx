@@ -1,7 +1,7 @@
 'use client';
 import {useEffect, useId, useRef, useState, type FormEvent, type ReactNode} from 'react';
 import {createClient, type SupabaseClient} from '@supabase/supabase-js';
-import {AlertTriangle, CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDashboard, LogOut, Minus, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
+import {CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDashboard, LogOut, Minus, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
 
 type Item = {id: string; name: string; category: string; quantity: number; cost: number; price: number; archived?: boolean};
 type Sale = {id: string; item_id: string; item_name: string; quantity: number; unit_cost: number; unit_price: number; list_price?: number | null; created_at: string};
@@ -633,7 +633,6 @@ export default function Home() {
   const soldByItem = sales.reduce<Record<string, number>>((m, s) => { m[s.item_id] = (m[s.item_id] || 0) + s.quantity; return m; }, {});
   const overallCount = (i: Item) => i.quantity + (soldByItem[i.id] || 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
-  const outOfStock = activeItems.filter(i => i.quantity === 0);
 
   const matches = (i: Item) =>
     (!filter || i.category === filter) &&
@@ -774,46 +773,45 @@ export default function Home() {
               </div>
             </section>
 
-            {outOfStock.length > 0 && (
-              <section className="stock-alert" aria-label="Finished items">
-                <AlertTriangle size={21} aria-hidden="true" />
-                <div>
-                  <b>{outOfStock.length} {outOfStock.length === 1 ? 'item is' : 'items are'} finished</b>
-                  <p>{outOfStock.slice(0, 4).map(i => i.name).join(', ')}{outOfStock.length > 4 ? ' and more' : ''}</p>
-                </div>
-                <button type="button" className="btn btn-secondary" onClick={() => goTo('Add new')}>Add stock</button>
-              </section>
-            )}
-
             <div className="two">
-              <section className="panel">
-                <h2>Recent sales</h2>
+              <section className="panel dashboard-panel">
+                <div className="dashboard-panel-head">
+                  <span className="dashboard-panel-icon" aria-hidden="true"><ClipboardList size={21} /></span>
+                  <h2>Sales history</h2>
+                  <span className="dashboard-panel-count">{dashboardSales.length} {dashboardSales.length === 1 ? 'sale' : 'sales'}</span>
+                </div>
                 {dashboardSales.length === 0 ? <p className="empty">No sales in this period.</p> : (
-                  <ul className="rows">
-                    {dashboardSales.slice(0, 5).map(s => (
-                      <li key={s.id}>
-                        <span className="row-main">{s.item_name} × {s.quantity}<small>{shortDate(s.created_at)}</small></span>
-                        <span className="row-end">{money(s.quantity * s.unit_price)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="dashboard-list-scroll" role="region" aria-label="Sales history for selected period" tabIndex={0}>
+                    <ul className="dashboard-list">
+                      {dashboardSales.map(s => (
+                        <li className="dashboard-list-row" key={s.id}>
+                          <span className="dashboard-row-icon" aria-hidden="true"><ShoppingCart size={18} /></span>
+                          <span className="dashboard-row-main"><strong>{s.item_name}</strong><small>{s.quantity} sold · {dateTime(s.created_at)}</small></span>
+                          <strong className="dashboard-row-value">{money(s.quantity * s.unit_price)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                {dashboardSales.length > 5 && <button type="button" className="link-btn" onClick={() => goTo('Sold items')}>See all sold items</button>}
               </section>
-              <section className="panel">
-                <h2>Running low</h2>
+              <section className="panel dashboard-panel">
+                <div className="dashboard-panel-head">
+                  <span className="dashboard-panel-icon dashboard-panel-icon-warn" aria-hidden="true"><Package size={21} /></span>
+                  <h2>Running low</h2>
+                  <span className="dashboard-panel-count">{lowStock.length} {lowStock.length === 1 ? 'item' : 'items'}</span>
+                </div>
                 {lowStock.length === 0 ? <p className="empty">Nothing is running low.</p> : (
-                  <>
-                    <ul className="rows">
-                      {lowStock.slice(0, 5).map(i => (
-                        <li key={i.id}>
-                          <span className="row-main">{i.name}<small>{i.category}</small></span>
+                  <div className="dashboard-list-scroll" role="region" aria-label="Items running low" tabIndex={0}>
+                    <ul className="dashboard-list">
+                      {lowStock.map(i => (
+                        <li className="dashboard-list-row" key={i.id}>
+                          <span className="dashboard-row-icon dashboard-row-icon-warn" aria-hidden="true"><Package size={18} /></span>
+                          <span className="dashboard-row-main"><strong>{i.name}</strong><small>{i.category}</small></span>
                           <StockCount quantity={i.quantity} />
                         </li>
                       ))}
                     </ul>
-                    {lowStock.length > 5 && <button type="button" className="link-btn" onClick={() => goTo('Inventory')}>See all {lowStock.length} in Inventory</button>}
-                  </>
+                  </div>
                 )}
               </section>
             </div>

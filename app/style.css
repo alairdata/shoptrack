@@ -540,13 +540,16 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   }
   .bottomnav button[aria-current='page'] { background: var(--tint); color: var(--green-900); font-weight: 800; }
   .bottomnav button.bottomnav-sell {
-    flex: 0 0 3.5rem;
+    flex: 0 0 4.25rem;
     display: grid;
+    align-self: flex-start;
     place-items: center;
-    width: 3.5rem;
-    min-height: 3.5rem;
-    margin-top: -0.5rem;
+    width: 4.25rem;
+    height: 4.25rem;
+    min-height: 4.25rem;
+    margin-top: -2.125rem;
     padding: 0;
+    border: 3px solid var(--surface);
     border-radius: 50%;
     background: var(--green-900);
     color: #fff;

@@ -1216,7 +1216,7 @@ export default function Home() {
       <nav className="bottomnav" aria-label="Main">
         {tabs.filter(t => t.name !== 'Admin' && t.name !== 'Inventory').map(({name, short, icon: Icon}) => (
           <button key={name} type="button" className={name === 'Sell' ? 'bottomnav-sell' : undefined} aria-label={name === 'Sell' ? 'Sell' : undefined} aria-current={tab === name ? 'page' : undefined} onClick={() => goTo(name)}>
-            <Icon size={name === 'Sell' ? 27 : 20} aria-hidden="true" />
+            <Icon size={name === 'Sell' ? 32 : 20} aria-hidden="true" />
             {name !== 'Sell' && short}
           </button>
         ))}

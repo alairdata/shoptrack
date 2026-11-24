@@ -14,7 +14,7 @@ type ConfirmRequest = {title: string; body: ReactNode; actionLabel: string; dang
 const categories = ['Dresses', 'Jackets', 'Shoes', 'Shorts', 'Tops', 'Anklets', 'Bandanas', 'Socks'];
 const LOW_STOCK = 3;
 const tabs = [
-  {name: 'Dashboard', short: 'Home', icon: LayoutDashboard, intro: 'How your shop is doing today.'},
+  {name: 'Dashboard', short: 'Home', icon: LayoutDashboard, intro: ''},
   {name: 'Add new', short: 'Add new', icon: PackagePlus, intro: 'Find the item that came in, set how many, then tap Add. The cost adds up as you go.'},
   {name: 'Sell', short: 'Sell', icon: ShoppingCart, intro: 'Choose an item and record the sale. Stock and profit update automatically.'},
   {name: 'Sold items', short: 'Sold', icon: ClipboardList, intro: 'A record of everything you have sold, newest first.'},
@@ -649,7 +649,7 @@ export default function Home() {
         <div className="page-head">
           <div>
             <h1 ref={heading} tabIndex={-1}>{tab}</h1>
-            <p>{current.intro}</p>
+            {current.intro && <p>{current.intro}</p>}
           </div>
           {tab === 'Inventory' && (
             <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}>
@@ -667,11 +667,10 @@ export default function Home() {
 
         {loaded && tab === 'Dashboard' && (
           <>
-            <section className="hero" aria-label="Money spent on stock">
+            <section className="hero" aria-label="Total shop items amount">
               <div>
-                <span className="hero-label">Spent on stock</span>
+                <span className="hero-label">Total shop items amount</span>
                 <strong className="hero-value">{money(investment)}</strong>
-                <span className="hero-note">Buying cost of all the stock you have added.</span>
               </div>
             </section>
 

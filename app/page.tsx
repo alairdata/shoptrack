@@ -22,8 +22,8 @@ const tabs = [
   {name: 'Dashboard', short: 'Home', icon: LayoutDashboard, intro: ''},
   {name: 'Add new', short: 'Add new', icon: PackagePlus, intro: 'Find the item that came in, set how many, then tap Add. The cost adds up as you go.'},
   {name: 'Sell', short: 'Sell', icon: ShoppingCart, intro: 'Choose an item and record the sale. Stock and profit update automatically.'},
-  {name: 'Sold items', short: 'Sold', icon: ClipboardList, intro: 'A record of everything you have sold, newest first.'},
-  {name: 'Expenses', short: 'Expenses', icon: Receipt, intro: 'Transport, packaging, rent and other shop costs. Stock purchases belong under Inventory.'},
+  {name: 'Sold items', short: 'Sold', icon: ClipboardList, intro: ''},
+  {name: 'Expenses', short: 'Expenses', icon: Receipt, intro: ''},
   {name: 'Inventory', short: 'Inventory', icon: Package, intro: ''},
   {name: 'Admin', short: 'Admin', icon: Settings, intro: 'Add, rename or remove your item groups, like Dresses or Shoes.'},
 ] as const;
@@ -806,8 +806,8 @@ export default function Home() {
           </span>
         </div>
 
-        <div className={tab === 'Dashboard' ? 'page-head dashboard-head' : tab === 'Inventory' ? 'page-head inventory-head' : 'page-head'}>
-          {tab === 'Dashboard' || tab === 'Inventory' ? (
+        <div className={tab === 'Dashboard' ? 'page-head dashboard-head' : tab === 'Inventory' || tab === 'Sold items' ? 'page-head inventory-head' : 'page-head'}>
+          {tab === 'Dashboard' || tab === 'Inventory' || tab === 'Expenses' || tab === 'Sold items' ? (
             <h1 ref={heading} tabIndex={-1} className="sr-only">{tab}</h1>
           ) : (
             <div>

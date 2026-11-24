@@ -329,6 +329,7 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .expense-detail strong { font-size: 1.125rem; }
 .expense-detail span { font-weight: 800; }
 .expense-detail small { color: var(--muted); }
+.expense-history .row-main { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }
@@ -505,9 +506,6 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   .inventory-table td:nth-child(3) { font-size: 0.875rem; }
   .inventory-table .inventory-quantity { font-size: 1.125rem; }
   .expense-category-grid, .expense-family-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .expense-history .rows > li { display: grid; gap: 0.25rem; }
-  .expense-history .row-end { justify-content: flex-end; }
-
   .productgrid { grid-template-columns: minmax(0, 1fr); gap: 0.625rem; }
 
 

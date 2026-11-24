@@ -313,12 +313,7 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .inventory-status-finished { background: var(--danger-bg); color: var(--danger); }
 .inventory-actions { display: flex; align-items: center; gap: 0.25rem; }
 .inventory-actions .btn { white-space: nowrap; }
-.inventory-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.625rem; }
-.inventory-card-stock { display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 0.75rem; border-radius: 10px; background: var(--tint); font-weight: 600; }
-.inventory-card-stock strong { font-size: 1.75rem; line-height: 1; }
-.inventory-card .inventory-card-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0.25rem 0; }
-.inventory-card-totals > div:last-child { grid-column: 1 / -1; }
-.inventory-card .inventory-actions .btn { flex: 1; width: auto; }
+.inventory-scroll-hint { display: none; }
 
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }
@@ -478,9 +473,16 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   .modal-head { padding-left: 1rem; padding-right: 0.5rem; }
   .modal-body { padding: 0.5rem 1rem 1.25rem; }
 
-  /* The table becomes a list of cards so nothing needs sideways scrolling. */
+  /* Sold items use cards; Inventory keeps its table with horizontal scrolling. */
   .stock-table { display: none; }
   .stock-cards { display: grid; gap: 0.625rem; }
+  .stock-table.inventory-table { display: block; padding: 0.75rem; }
+  .inventory-scroll-hint { display: block; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.8125rem; font-weight: 600; }
+  .inventory-table .tablewrap { -webkit-overflow-scrolling: touch; }
+  .inventory-table table { min-width: 52rem; }
+  .inventory-table td.inventory-name { min-width: 9rem; }
+  .inventory-table th:first-child, .inventory-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 3px 0 6px rgba(24, 52, 44, 0.08); }
+  .inventory-table th, .inventory-table td { padding: 0.625rem 0.5rem; }
 
   .productgrid { grid-template-columns: minmax(0, 1fr); gap: 0.625rem; }
 

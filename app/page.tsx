@@ -885,6 +885,7 @@ export default function Home() {
               {shownItems.length === 0 ? noMatch : (
                 <>
                   <section className="panel stock-table inventory-table" aria-label="All inventory">
+                    <p className="inventory-scroll-hint">Swipe sideways to see all columns →</p>
                     <div className="tablewrap" tabIndex={0} role="region" aria-label="Inventory table">
                       <table>
                         <thead>
@@ -921,26 +922,6 @@ export default function Home() {
                       </table>
                     </div>
                   </section>
-                  <ul className="stock-cards inventory-cards" aria-label="All inventory">
-                    {shownItems.map(i => (
-                      <li className="stock-card inventory-card" key={i.id}>
-                        <div className="inventory-card-head">
-                          <InventoryItemLabel item={i} />
-                          <InventoryStatus quantity={i.quantity} />
-                        </div>
-                        <div className="inventory-card-stock"><span>In stock</span><strong>{i.quantity}</strong></div>
-                        <dl className="inventory-card-totals">
-                          <div><dt>Selling each</dt><dd>{money(i.price)}</dd></div>
-                          <div><dt>Total cost</dt><dd>{money(i.quantity * i.cost)}</dd></div>
-                          <div><dt>Total profit</dt><dd>{money(i.quantity * (i.price - i.cost))}</dd></div>
-                        </dl>
-                        <div className="inventory-actions">
-                          <button type="button" className="btn btn-secondary" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}><Pencil size={16} aria-hidden="true" /> Edit</button>
-                          <button type="button" className="icon-btn" aria-label={`Remove ${i.name}`} title={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}><Trash2 size={17} aria-hidden="true" /></button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
                 </>
               )}
             </>

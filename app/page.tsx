@@ -122,6 +122,9 @@ const isDiscounted = (s: Sale) => s.list_price != null && Number(s.unit_price) <
 const discountEach = (s: Sale) => Number(s.list_price) - Number(s.unit_price);
 
 const guessExpenseGroup = (purpose: string): {category: ExpenseCategory; member: FamilyMember | ''} => {
+  if (/\btin(?:ned)?\s+tomatoes?\b/i.test(purpose)) return {category: 'House stuff', member: ''};
+  if (/\bsoaps?\b/i.test(purpose)) return {category: 'House stuff', member: ''};
+  if (/\bcredit\b/i.test(purpose)) return {category: 'Personal', member: ''};
   if (/\belsie\b/i.test(purpose)) return {category: 'Family', member: 'Elsie'};
   if (/\byaa\b/i.test(purpose)) return {category: 'Family', member: 'Yaa'};
   if (/\b(children|child|kids?)\b/i.test(purpose)) return {category: 'Family', member: 'Children'};

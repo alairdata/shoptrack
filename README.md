@@ -18,9 +18,9 @@ A simple mobile-first inventory app built with Next.js, Supabase Postgres and Ve
 - **Remaining inventory cost:** purchase cost of unsold units.
 - **Revenue:** sale price × units sold.
 - **Gross profit:** (sale price − original unit cost) × units sold.
-- **Operating expenses:** amounts entered under Expenses.
-- **Net profit:** gross profit − operating expenses. Sales count at the price actually charged, so discounts are included. Does not include taxes, returns or payment fees unless recorded as expenses.
-- Purchases of new stock belong under Inventory, not operating expenses.
+- **Expenses:** amounts entered under Expenses, including family, food, house, personal, and other spending.
+- **Profit after expenses:** gross profit − all recorded expenses. Sales count at the price actually charged, so discounts are included. Does not include taxes, returns or payment fees unless recorded as expenses.
+- Purchases of new stock belong under Add new, not Expenses.
 
 ## Notes and limitations
 
@@ -29,4 +29,5 @@ A simple mobile-first inventory app built with Next.js, Supabase Postgres and Ve
 - The app requires an internet connection for data entry; the PWA is installable but **does not provide offline data entry**.
 - This MVP does not yet support sale refunds, receipts, item images, multiple employees sharing the same inventory, cash balance reconciliation or detailed profit reports. Add those before relying on it for more complex operations.
 - Expenses and sales can be deleted after a confirmation. Deleting a sale returns its units to stock. Removing an item hides it from the shop and keeps its past sales.
+- Expense categories are stored as readable tags in the existing `purpose` field. Older expenses appear under Other until their category is changed in the app.
 - For accounting or tax reporting, reconcile with receipts and consult an accountant.

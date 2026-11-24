@@ -6,6 +6,10 @@ import {CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDash
 type Item = {id: string; name: string; category: string; quantity: number; cost: number; price: number; archived?: boolean};
 type Sale = {id: string; item_id: string; item_name: string; quantity: number; unit_cost: number; unit_price: number; list_price?: number | null; created_at: string};
 type Expense = {id: string; purpose: string; amount: number; created_at: string};
+const expenseCategories = ['Family', 'Food items', 'House stuff', 'Personal', 'Other'] as const;
+const familyMembers = ['Elsie', 'Yaa', 'Children', 'D', 'Dad'] as const;
+type ExpenseCategory = typeof expenseCategories[number];
+type FamilyMember = typeof familyMembers[number];
 type ItemValues = Omit<Item, 'id'>;
 type Tab = 'Dashboard' | 'Add new' | 'Inventory' | 'Sell' | 'Sold items' | 'Expenses' | 'Admin';
 type DashboardPeriod = 'today' | 'yesterday' | 'week' | 'this-month' | 'month' | 'three-months' | 'custom' | 'all';
@@ -66,8 +70,64 @@ const dashboardDates = (period: DashboardPeriod, from: string, to: string, now: 
     : [new Date(today.getFullYear(), today.getMonth() - 3, 1), thisMonth];
 };
 
+function PeriodFilter({label, period, setPeriod, from, setFrom, to, setTo, range, valid}: {
+  label: string;
+  period: DashboardPeriod;
+  setPeriod: (period: DashboardPeriod) => void;
+  from: string;
+  setFrom: (date: string) => void;
+  to: string;
+  setTo: (date: string) => void;
+  range: [Date, Date] | null;
+  valid: boolean;
+}) {
+  return (
+    <div className="period-filter">
+      <label className="period-filter-select">
+        <Filter size={18} aria-hidden="true" />
+        <span className="sr-only">{label}</span>
+        <select value={period} onChange={e => {
+          const next = e.target.value as DashboardPeriod;
+          if (next === 'custom' && !from && !to) {
+            const today = inputDate(new Date());
+            setFrom(today);
+            setTo(today);
+          }
+          setPeriod(next);
+        }}>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="week">Last week</option>
+          <option value="this-month">This month</option>
+          <option value="month">Last month</option>
+          <option value="three-months">Last 3 months</option>
+          <option value="custom">Choose period</option>
+          <option value="all">All time</option>
+        </select>
+      </label>
+      {period === 'custom' && (
+        <div className="period-custom-dates">
+          <label>From <input type="date" value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} /></label>
+          <label>To <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
+        </div>
+      )}
+      {!valid ? <p className="period-date-error" role="alert">Choose a start date before the end date.</p> : range && (
+        <p className="period-range">{shortDate(range[0].toISOString())} – {shortDate(new Date(range[1].getTime() - 1).toISOString())}</p>
+      )}
+    </div>
+  );
+}
+
 const isDiscounted = (s: Sale) => s.list_price != null && Number(s.unit_price) < Number(s.list_price);
 const discountEach = (s: Sale) => Number(s.list_price) - Number(s.unit_price);
+
+// The live expenses table has no category columns, so a readable tag keeps categories shared across phones.
+const expensePurpose = (purpose: string, category: ExpenseCategory, member: FamilyMember | '') => `[ST:${category}${member ? `:${member}` : ''}] ${purpose}`;
+const readExpensePurpose = (raw: string): {purpose: string; category: ExpenseCategory; member: FamilyMember | ''} => {
+  const match = raw.match(/^\[ST:(Family|Food items|House stuff|Personal|Other)(?::(Elsie|Yaa|Children|D|Dad))?\] ([\s\S]*)$/);
+  if (!match || (match[1] === 'Family' && !match[2]) || (match[1] !== 'Family' && match[2])) return {purpose: raw, category: 'Other', member: ''};
+  return {purpose: match[3], category: match[1] as ExpenseCategory, member: (match[2] || '') as FamilyMember | ''};
+};
 
 const config = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 const db: SupabaseClient | null = config ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!) : null;
@@ -185,11 +245,29 @@ function ItemForm(props: {
   );
 }
 
-function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: string; onSubmit: (purpose: string, amount: number) => void; onCancel: () => void}) {
+function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: string; onSubmit: (purpose: string, amount: number, category: ExpenseCategory, member: FamilyMember | '') => void; onCancel: () => void}) {
+  const [category, setCategory] = useState<ExpenseCategory | ''>('');
+  const [member, setMember] = useState<FamilyMember | ''>('');
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
   return (
-    <form className="formgrid" onSubmit={e => { e.preventDefault(); onSubmit(purpose.trim(), Number(amount)); }}>
+    <form className="formgrid" onSubmit={e => { e.preventDefault(); if (category && (category !== 'Family' || member)) onSubmit(purpose.trim(), Number(amount), category, member); }}>
+      <label className="field wide">
+        Category
+        <select data-autofocus required value={category} onChange={e => { setCategory(e.target.value as ExpenseCategory | ''); setMember(''); }}>
+          <option value="">Choose category</option>
+          {expenseCategories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </label>
+      {category === 'Family' && (
+        <label className="field wide">
+          Who was it for?
+          <select required value={member} onChange={e => setMember(e.target.value as FamilyMember | '')}>
+            <option value="">Choose person</option>
+            {familyMembers.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+      )}
       <label className="field wide">
         What was the money used for?
         <input required maxLength={200} placeholder="e.g. Delivery transport" value={purpose} onChange={e => setPurpose(e.target.value)} />
@@ -201,7 +279,7 @@ function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: s
       <FormError text={error} />
       <div className="modal-actions wide">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-        <button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</button>
+        <button className="btn btn-primary" disabled={busy || !category || (category === 'Family' && !member)}>{busy ? 'Saving…' : 'Save expense'}</button>
       </div>
     </form>
   );
@@ -340,9 +418,13 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [itemModal, setItemModal] = useState<{item: Item | null} | null>(null);
   const [actionItem, setActionItem] = useState<Item | null>(null);
   const [expenseModal, setExpenseModal] = useState(false);
+  const [classifyingExpense, setClassifyingExpense] = useState<Expense | null>(null);
+  const [editExpenseCategory, setEditExpenseCategory] = useState<ExpenseCategory>('Other');
+  const [editExpenseMember, setEditExpenseMember] = useState<FamilyMember | ''>('');
   const [confirming, setConfirming] = useState<ConfirmRequest | null>(null);
   const [selling, setSelling] = useState<{item: Item; qty: number; discount: boolean} | null>(null);
   const [discountSale, setDiscountSale] = useState<Sale | null>(null);
@@ -360,6 +442,11 @@ export default function Home() {
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>('today');
   const [dashboardFrom, setDashboardFrom] = useState('');
   const [dashboardTo, setDashboardTo] = useState('');
+  const [expensePeriod, setExpensePeriod] = useState<DashboardPeriod>('today');
+  const [expenseFrom, setExpenseFrom] = useState('');
+  const [expenseTo, setExpenseTo] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory | 'all'>('all');
+  const [expenseMember, setExpenseMember] = useState<FamilyMember | 'all'>('all');
   const heading = useRef<HTMLHeadingElement>(null);
   const firstTabRender = useRef(true);
   const lastAdd = useRef({id: '', at: 0});
@@ -395,7 +482,7 @@ export default function Home() {
 
   useEffect(() => {
     if (user) refresh();
-    else { setItems([]); setSales([]); setExpenses([]); setSavedCategories([]); setLoaded(false); setTab('Dashboard'); setNotice(null); }
+    else { setItems([]); setSales([]); setExpenses([]); setSavedCategories([]); setLoaded(false); setTab('Dashboard'); setNotice(null); setShopMenuOpen(false); }
   }, [user]);
 
   // Move focus to the new page's title so screen readers announce the change.
@@ -449,18 +536,44 @@ export default function Home() {
     setBusy(false);
   }
 
-  async function saveExpense(purpose: string, amount: number) {
+  async function saveExpense(purpose: string, amount: number, category: ExpenseCategory, member: FamilyMember | '') {
     if (!db) return;
     if (!purpose) return setFormError('Say what the money was used for.');
+    if (category === 'Family' && !member) return setFormError('Choose who the family expense was for.');
     if (!Number.isFinite(amount) || amount <= 0) return setFormError('Amount must be more than zero.');
     setBusy(true);
     setFormError('');
-    const {error} = await db.from('expenses').insert({purpose, amount});
+    const {error} = await db.from('expenses').insert({purpose: expensePurpose(purpose, category, member), amount});
     if (error) setFormError(error.message);
     else {
       setExpenseModal(false);
       await refresh();
       success('Expense saved');
+    }
+    setBusy(false);
+  }
+
+  function openExpenseCategory(expense: Expense) {
+    const details = readExpensePurpose(expense.purpose);
+    setEditExpenseCategory(details.category);
+    setEditExpenseMember(details.member);
+    setFormError('');
+    setClassifyingExpense(expense);
+  }
+
+  async function saveExpenseCategory(e: FormEvent) {
+    e.preventDefault();
+    if (!db || !classifyingExpense || (editExpenseCategory === 'Family' && !editExpenseMember)) return;
+    setBusy(true);
+    setFormError('');
+    const purpose = readExpensePurpose(classifyingExpense.purpose).purpose;
+    const {data, error} = await db.from('expenses').update({purpose: expensePurpose(purpose, editExpenseCategory, editExpenseMember)}).eq('id', classifyingExpense.id).select('id');
+    if (error) setFormError(error.message);
+    else if (!data?.length) setFormError('This expense could not be updated.');
+    else {
+      setClassifyingExpense(null);
+      await refresh();
+      success('Expense category updated');
     }
     setBusy(false);
   }
@@ -585,7 +698,7 @@ export default function Home() {
   function askToDeleteExpense(expense: Expense) {
     setConfirming({
       title: 'Delete this expense?',
-      body: <p><b>{expense.purpose}</b>, {money(expense.amount)}. This cannot be undone.</p>,
+      body: <p><b>{readExpensePurpose(expense.purpose).purpose}</b>, {money(expense.amount)}. This cannot be undone.</p>,
       actionLabel: 'Delete expense',
       danger: true,
       run: async () => {
@@ -623,8 +736,8 @@ export default function Home() {
   const categoryOptions = Array.from(new Set([...savedCategories, ...activeItems.map(i => i.category), ...(savedCategories.length === 0 ? categories : [])])).sort((a, b) => a.localeCompare(b));
   const stockValue = activeItems.reduce((s, i) => s + i.quantity * i.cost, 0);
   const investment = stockValue + sales.reduce((s, i) => s + i.quantity * i.unit_cost, 0);
-  const expenseTotal = expenses.reduce((s, i) => s + Number(i.amount), 0);
-  const dateRange = dashboardDates(dashboardPeriod, dashboardFrom, dashboardTo, new Date());
+  const now = new Date();
+  const dateRange = dashboardDates(dashboardPeriod, dashboardFrom, dashboardTo, now);
   const validDashboardRange = dashboardPeriod !== 'custom' || (!!dashboardFrom && !!dashboardTo && dashboardFrom <= dashboardTo);
   const inDashboardPeriod = (createdAt: string) => validDashboardRange && (!dateRange || (new Date(createdAt) >= dateRange[0] && new Date(createdAt) < dateRange[1]));
   const dashboardSales = sales.filter(s => inDashboardPeriod(s.created_at));
@@ -632,6 +745,15 @@ export default function Home() {
   const revenue = dashboardSales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
   const gross = dashboardSales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
   const dashboardExpenseTotal = dashboardExpenses.reduce((s, i) => s + Number(i.amount), 0);
+  const expenseRange = dashboardDates(expensePeriod, expenseFrom, expenseTo, now);
+  const validExpenseRange = expensePeriod !== 'custom' || (!!expenseFrom && !!expenseTo && expenseFrom <= expenseTo);
+  const expenseHistory = expenses.filter(e => validExpenseRange && (!expenseRange || (new Date(e.created_at) >= expenseRange[0] && new Date(e.created_at) < expenseRange[1])));
+  const expenseTotal = expenseHistory.reduce((s, i) => s + Number(i.amount), 0);
+  const expenseEntries = expenseHistory.map(expense => ({expense, details: readExpensePurpose(expense.purpose)}));
+  const visibleExpenses = expenseEntries.filter(({details}) =>
+    (expenseCategory === 'all' || details.category === expenseCategory) &&
+    (expenseCategory !== 'Family' || expenseMember === 'all' || details.member === expenseMember));
+  const visibleExpenseTotal = visibleExpenses.reduce((sum, {expense}) => sum + Number(expense.amount), 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
 
   const matches = (i: Item) =>
@@ -657,12 +779,12 @@ export default function Home() {
     <div className="shell">
       <a className="skip-link" href="#main">Skip to main content</a>
       <aside>
-        <div className="logo">
+        <button type="button" className="logo brand-menu-trigger" aria-label="ShopTrack menu" aria-haspopup="dialog" aria-expanded={shopMenuOpen} onClick={() => setShopMenuOpen(true)}>
           <span className="brandmark" aria-hidden="true">▣</span>
           <span>ShopTrack<small>Inventory &amp; POS</small></span>
-        </div>
+        </button>
         <nav className="side-nav" aria-label="Main">
-          {tabs.map(({name, icon: Icon}) => (
+          {tabs.filter(t => t.name !== 'Inventory').map(({name, icon: Icon}) => (
             <button key={name} type="button" aria-current={tab === name ? 'page' : undefined} onClick={() => goTo(name)}>
               <Icon size={19} aria-hidden="true" />
               {name}
@@ -676,7 +798,7 @@ export default function Home() {
 
       <main className="content" id="main" tabIndex={-1}>
         <div className="topbar">
-          <span className="topbar-brand"><span className="brandmark" aria-hidden="true">▣</span> ShopTrack</span>
+          <button type="button" className="topbar-brand brand-menu-trigger" aria-label="ShopTrack menu" aria-haspopup="dialog" aria-expanded={shopMenuOpen} onClick={() => setShopMenuOpen(true)}><span className="brandmark" aria-hidden="true">▣</span> ShopTrack</button>
           <span className="topbar-actions">
             <button type="button" className="icon-btn" aria-label="Admin" aria-current={tab === 'Admin' ? 'page' : undefined} onClick={() => goTo('Admin')}>
               <Settings size={19} aria-hidden="true" />
@@ -697,44 +819,15 @@ export default function Home() {
             </div>
           )}
           {tab === 'Dashboard' && (
-            <div className="dashboard-filter">
-              <label className="dashboard-filter-select">
-                <Filter size={18} aria-hidden="true" />
-                <span className="sr-only">Dashboard period</span>
-                <select value={dashboardPeriod} onChange={e => {
-                  const period = e.target.value as DashboardPeriod;
-                  if (period === 'custom' && !dashboardFrom && !dashboardTo) {
-                    const today = inputDate(new Date());
-                    setDashboardFrom(today);
-                    setDashboardTo(today);
-                  }
-                  setDashboardPeriod(period);
-                }}>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="week">Last week</option>
-                  <option value="this-month">This month</option>
-                  <option value="month">Last month</option>
-                  <option value="three-months">Last 3 months</option>
-                  <option value="custom">Choose period</option>
-                  <option value="all">All time</option>
-                </select>
-              </label>
-              {dashboardPeriod === 'custom' && (
-                <div className="dashboard-custom-dates">
-                  <label>From <input type="date" value={dashboardFrom} max={dashboardTo || undefined} onChange={e => setDashboardFrom(e.target.value)} /></label>
-                  <label>To <input type="date" value={dashboardTo} min={dashboardFrom || undefined} onChange={e => setDashboardTo(e.target.value)} /></label>
-                </div>
-              )}
-              {!validDashboardRange ? <p className="dashboard-date-error" role="alert">Choose a start date before the end date.</p> : dateRange && (
-                <p className="dashboard-range">{shortDate(dateRange[0].toISOString())} – {shortDate(new Date(dateRange[1].getTime() - 1).toISOString())}</p>
-              )}
-            </div>
+            <PeriodFilter label="Dashboard period" period={dashboardPeriod} setPeriod={setDashboardPeriod} from={dashboardFrom} setFrom={setDashboardFrom} to={dashboardTo} setTo={setDashboardTo} range={dateRange} valid={validDashboardRange} />
           )}
           {tab === 'Expenses' && (
-            <button type="button" className="btn btn-primary" onClick={() => { setFormError(''); setExpenseModal(true); }}>
-              <Plus size={18} aria-hidden="true" /> Add expense
-            </button>
+            <div className="expenses-head-actions">
+              <PeriodFilter label="Expenses period" period={expensePeriod} setPeriod={setExpensePeriod} from={expenseFrom} setFrom={setExpenseFrom} to={expenseTo} setTo={setExpenseTo} range={expenseRange} valid={validExpenseRange} />
+              <button type="button" className="btn btn-primary" onClick={() => { setFormError(''); setExpenseModal(true); }}>
+                <Plus size={18} aria-hidden="true" /> Add expense
+              </button>
+            </div>
           )}
         </div>
 
@@ -1070,29 +1163,56 @@ export default function Home() {
         )}
 
         {loaded && tab === 'Expenses' && (
-          <section className="panel">
-            <h2>Expense history · {money(expenseTotal)}</h2>
-            {expenses.length === 0 ? <p className="empty">No expenses recorded yet.</p> : (
-              <ul className="rows">
-                {expenses.map(e => (
-                  <li key={e.id}>
-                    <span className="row-main">{e.purpose}<small>{dateTime(e.created_at)}</small></span>
-                    <span className="row-end">
-                      {money(e.amount)}
-                      <button type="button" className="icon-btn" aria-label={`Delete expense: ${e.purpose}`} onClick={() => askToDeleteExpense(e)}>
-                        <Trash2 size={17} aria-hidden="true" />
-                      </button>
-                    </span>
-                  </li>
+          <>
+            <section className="panel expense-categories" aria-label="Expense categories">
+              <h2>Categories</h2>
+              <div className="expense-category-grid">
+                <button type="button" className="expense-category" aria-pressed={expenseCategory === 'all'} onClick={() => { setExpenseCategory('all'); setExpenseMember('all'); }}><span>All</span><strong>{money(expenseTotal)}</strong></button>
+                {expenseCategories.map(category => (
+                  <button key={category} type="button" className="expense-category" aria-pressed={expenseCategory === category} onClick={() => { setExpenseCategory(category); setExpenseMember('all'); }}>
+                    <span>{category}</span><strong>{money(expenseEntries.filter(({details}) => details.category === category).reduce((sum, {expense}) => sum + Number(expense.amount), 0))}</strong>
+                  </button>
                 ))}
-              </ul>
-            )}
-          </section>
+              </div>
+              {expenseCategory === 'Family' && (
+                <div className="expense-family">
+                  <h3>Family</h3>
+                  <div className="expense-family-grid">
+                    <button type="button" className="expense-family-member" aria-pressed={expenseMember === 'all'} onClick={() => setExpenseMember('all')}><span>All family</span><strong>{money(expenseEntries.filter(({details}) => details.category === 'Family').reduce((sum, {expense}) => sum + Number(expense.amount), 0))}</strong></button>
+                    {familyMembers.map(member => (
+                      <button key={member} type="button" className="expense-family-member" aria-pressed={expenseMember === member} onClick={() => setExpenseMember(member)}><span>{member}</span><strong>{money(expenseEntries.filter(({details}) => details.member === member).reduce((sum, {expense}) => sum + Number(expense.amount), 0))}</strong></button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+            <section className="panel expense-history">
+              <h2>Expense history · {money(visibleExpenseTotal)}</h2>
+              {visibleExpenses.length === 0 ? <p className="empty">No expenses match this selection.</p> : (
+                <ul className="rows">
+                  {visibleExpenses.map(({expense: e, details}) => (
+                    <li key={e.id}>
+                      <span className="row-main">{details.purpose}<small>{details.category}{details.member ? ` · ${details.member}` : ''} · {dateTime(e.created_at)}</small></span>
+                      <span className="row-end">
+                        {money(e.amount)}
+                        <button type="button" className="icon-btn" aria-label={`Change category: ${details.purpose}`} onClick={() => openExpenseCategory(e)}>
+                          <Pencil size={17} aria-hidden="true" />
+                        </button>
+                        <button type="button" className="icon-btn" aria-label={`Delete expense: ${details.purpose}`} onClick={() => askToDeleteExpense(e)}>
+                          <Trash2 size={17} aria-hidden="true" />
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
         )}
       </main>
 
       <nav className="bottomnav" aria-label="Main">
-        {tabs.filter(t => t.name !== 'Admin').map(({name, short, icon: Icon}) => (
+        {tabs.filter(t => t.name !== 'Admin' && t.name !== 'Inventory').map(({name, short, icon: Icon}) => (
           <button key={name} type="button" aria-current={tab === name ? 'page' : undefined} onClick={() => goTo(name)}>
             <Icon size={20} aria-hidden="true" />
             {short}
@@ -1112,6 +1232,11 @@ export default function Home() {
         )}
       </div>
 
+      {shopMenuOpen && (
+        <Modal title="ShopTrack menu" onClose={() => setShopMenuOpen(false)}>
+          <button type="button" data-autofocus className="btn btn-secondary shop-menu-link" onClick={() => { setShopMenuOpen(false); goTo('Inventory'); }}><Package size={20} aria-hidden="true" /> View inventory</button>
+        </Modal>
+      )}
       {actionItem && (
         <Modal title={`Actions for ${actionItem.name}`} onClose={() => setActionItem(null)}>
           <div className="inventory-action-list">
@@ -1128,6 +1253,31 @@ export default function Home() {
       {expenseModal && (
         <Modal title="Add an expense" onClose={() => setExpenseModal(false)}>
           <ExpenseForm busy={busy} error={formError} onSubmit={saveExpense} onCancel={() => setExpenseModal(false)} />
+        </Modal>
+      )}
+      {classifyingExpense && (
+        <Modal title="Change expense category" onClose={() => setClassifyingExpense(null)}>
+          <form className="formgrid" onSubmit={saveExpenseCategory}>
+            <p className="wide"><b>{readExpensePurpose(classifyingExpense.purpose).purpose}</b> · {money(classifyingExpense.amount)}</p>
+            <label className="field wide">Category
+              <select data-autofocus value={editExpenseCategory} onChange={e => { setEditExpenseCategory(e.target.value as ExpenseCategory); setEditExpenseMember(''); }}>
+                {expenseCategories.map(category => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </label>
+            {editExpenseCategory === 'Family' && (
+              <label className="field wide">Who was it for?
+                <select required value={editExpenseMember} onChange={e => setEditExpenseMember(e.target.value as FamilyMember | '')}>
+                  <option value="">Choose person</option>
+                  {familyMembers.map(member => <option key={member} value={member}>{member}</option>)}
+                </select>
+              </label>
+            )}
+            <FormError text={formError} />
+            <div className="modal-actions wide">
+              <button type="button" className="btn btn-secondary" onClick={() => setClassifyingExpense(null)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={busy || (editExpenseCategory === 'Family' && !editExpenseMember)}>{busy ? 'Saving…' : 'Save category'}</button>
+            </div>
+          </form>
         </Modal>
       )}
       {renaming && (

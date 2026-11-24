@@ -89,6 +89,11 @@ aside {
 
 .logo { display: flex; align-items: center; gap: 0.75rem; padding: 0 0.5rem; font-size: 1.25rem; font-weight: 800; }
 .logo small { display: block; font-size: 0.75rem; font-weight: 400; color: #d3e3da; }
+.brand-menu-trigger { border: 0; background: transparent; color: inherit; text-align: left; }
+.logo.brand-menu-trigger { width: 100%; min-height: 2.875rem; border-radius: 10px; }
+.logo.brand-menu-trigger:hover { background: var(--green-700); }
+.topbar-brand.brand-menu-trigger { padding: 0; }
+.shop-menu-link { justify-content: flex-start; width: 100%; min-height: 3.25rem; }
 
 .brandmark {
   flex-shrink: 0;
@@ -138,15 +143,17 @@ aside {
 .page-head p { margin-top: 0.25rem; color: var(--muted); max-width: 40rem; }
 .dashboard-head { justify-content: flex-end; }
 .page-head.inventory-head { margin-bottom: 0; }
-.dashboard-filter { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; margin-left: auto; }
-.dashboard-filter-select { display: flex; align-items: center; gap: 0.5rem; }
-.dashboard-filter-select svg { flex-shrink: 0; color: var(--muted); }
-.dashboard-filter-select select { width: auto; min-width: 10.5rem; }
-.dashboard-custom-dates { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
-.dashboard-custom-dates label { display: grid; gap: 0.25rem; font-size: 0.8125rem; font-weight: 600; }
-.dashboard-custom-dates input { width: 10rem; }
-.dashboard-filter .dashboard-range { margin: 0; font-size: 0.8125rem; }
-.dashboard-filter .dashboard-date-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
+.period-filter { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; margin-left: auto; }
+.period-filter-select { display: flex; align-items: center; gap: 0.5rem; }
+.period-filter-select svg { flex-shrink: 0; color: var(--muted); }
+.period-filter-select select { width: auto; min-width: 10.5rem; }
+.period-custom-dates { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+.period-custom-dates label { display: grid; gap: 0.25rem; font-size: 0.8125rem; font-weight: 600; }
+.period-custom-dates input { width: 10rem; }
+.period-filter .period-range { margin: 0; font-size: 0.8125rem; }
+.period-filter .period-date-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
+.expenses-head-actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: 0.75rem; margin-left: auto; }
+.expenses-head-actions .btn { width: auto; }
 
 /* Buttons */
 .btn {
@@ -307,6 +314,17 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .inventory-action-list .btn { justify-content: flex-start; width: 100%; }
 .inventory-more { border: 1px solid var(--line); }
 
+/* Expenses */
+.expense-categories { margin-bottom: 1rem; }
+.expense-categories > h2 { margin-bottom: 0.875rem; }
+.expense-category-grid, .expense-family-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.625rem; }
+.expense-category, .expense-family-member { display: grid; align-content: center; gap: 0.25rem; min-width: 0; min-height: 4.75rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: left; }
+.expense-category span, .expense-family-member span { font-weight: 700; }
+.expense-category strong, .expense-family-member strong { overflow-wrap: anywhere; font-size: 1.125rem; }
+.expense-category[aria-pressed='true'], .expense-family-member[aria-pressed='true'] { border-color: var(--green-900); background: var(--tint); color: var(--green-900); }
+.expense-family { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.expense-family h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }
 .stock-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
@@ -440,6 +458,8 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   h1 { font-size: 1.625rem; }
   .page-head { margin-bottom: 1rem; }
   .page-head .btn { width: 100%; }
+  .expenses-head-actions { width: 100%; }
+  .expenses-head-actions .btn { width: 100%; }
 
   .hero { padding: 1.25rem; }
 
@@ -479,6 +499,9 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
   .inventory-table th:nth-child(4) { width: 24%; }
   .inventory-table td:nth-child(3) { font-size: 0.875rem; }
   .inventory-table .inventory-quantity { font-size: 1.125rem; }
+  .expense-category-grid, .expense-family-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .expense-history .rows > li { display: grid; gap: 0.25rem; }
+  .expense-history .row-end { justify-content: flex-end; }
 
   .productgrid { grid-template-columns: minmax(0, 1fr); gap: 0.625rem; }
 

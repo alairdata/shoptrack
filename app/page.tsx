@@ -8,7 +8,7 @@ type Sale = {id: string; item_id: string; item_name: string; quantity: number; u
 type Expense = {id: string; purpose: string; amount: number; created_at: string};
 type ItemValues = Omit<Item, 'id'>;
 type Tab = 'Dashboard' | 'Add new' | 'Inventory' | 'Sell' | 'Sold items' | 'Expenses' | 'Admin';
-type DashboardPeriod = 'today' | 'yesterday' | 'week' | 'month' | 'three-months' | 'custom' | 'all';
+type DashboardPeriod = 'today' | 'yesterday' | 'week' | 'this-month' | 'month' | 'three-months' | 'custom' | 'all';
 type Notice = {text: string; error: boolean};
 type ConfirmRequest = {title: string; body: ReactNode; actionLabel: string; danger?: boolean; run: () => Promise<void>};
 
@@ -58,6 +58,7 @@ const dashboardDates = (period: DashboardPeriod, from: string, to: string, now: 
     return [lastMonday, thisMonday];
   }
   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  if (period === 'this-month') return [thisMonth, tomorrow];
   return period === 'month'
     ? [new Date(today.getFullYear(), today.getMonth() - 1, 1), thisMonth]
     : [new Date(today.getFullYear(), today.getMonth() - 3, 1), thisMonth];
@@ -713,6 +714,7 @@ export default function Home() {
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
                   <option value="week">Last week</option>
+                  <option value="this-month">This month</option>
                   <option value="month">Last month</option>
                   <option value="three-months">Last 3 months</option>
                   <option value="custom">Choose period</option>
@@ -754,16 +756,21 @@ export default function Home() {
             </section>
 
             <section className="stats dashboard-stats" aria-label="Shop totals for selected period">
-              <div className="stat"><span className="stat-label">Sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from recorded sales</span></div>
-              <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(dashboardExpenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
-              <div className="stat dashboard-profit"><span className="stat-label">Profit</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
+              <div className="stat"><span className="stat-label">Sales</span><strong className="stat-value">{money(revenue)}</strong></div>
+              <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(dashboardExpenseTotal)}</strong></div>
+            </section>
+
+            <section className="hero" aria-label="Profit">
+              <div>
+                <span className="hero-label">Profit</span>
+                <strong className="hero-value">{money(gross)}</strong>
+              </div>
             </section>
 
             <section className="hero" aria-label="Profit after expenses">
               <div>
                 <span className="hero-label">Profit after expenses</span>
                 <strong className="hero-value">{money(gross - dashboardExpenseTotal)}</strong>
-                <span className="hero-note">Sales minus buying cost and recorded expenses.</span>
               </div>
             </section>
 

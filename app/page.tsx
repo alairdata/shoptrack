@@ -670,7 +670,7 @@ export default function Home() {
             <section className="hero" aria-label="Total shop items amount">
               <div>
                 <span className="hero-label">Total shop items amount</span>
-                <strong className="hero-value">{money(investment)}</strong>
+                <strong className="hero-value">{money(stockValue)}</strong>
               </div>
             </section>
 

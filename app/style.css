@@ -310,8 +310,8 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .inventory-table td.inventory-name { min-width: 10rem; white-space: normal; overflow-wrap: anywhere; }
 .inventory-name-alert { color: var(--danger); }
 .inventory-quantity { font-size: 1.25rem; font-weight: 800; }
-.inventory-action-list { display: grid; gap: 0.625rem; }
-.inventory-action-list .btn { justify-content: flex-start; width: 100%; }
+.modal-choice-list { display: grid; gap: 0.625rem; }
+.modal-choice-list .btn { justify-content: flex-start; width: 100%; }
 .inventory-more { border: 1px solid var(--line); }
 
 /* Expenses */
@@ -325,6 +325,10 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .expense-family { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .expense-family h3 { margin: 0 0 0.75rem; font-size: 1rem; }
 .expense-group-preview { color: var(--muted); font-size: 0.875rem; }
+.expense-detail { display: grid; gap: 0.25rem; }
+.expense-detail strong { font-size: 1.125rem; }
+.expense-detail span { font-weight: 800; }
+.expense-detail small { color: var(--muted); }
 
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }

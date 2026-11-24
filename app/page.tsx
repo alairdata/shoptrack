@@ -419,6 +419,7 @@ export default function Home() {
   const [itemModal, setItemModal] = useState<{item: Item | null} | null>(null);
   const [actionItem, setActionItem] = useState<Item | null>(null);
   const [expenseModal, setExpenseModal] = useState(false);
+  const [expenseAction, setExpenseAction] = useState<Expense | null>(null);
   const [classifyingExpense, setClassifyingExpense] = useState<Expense | null>(null);
   const [editExpenseCategory, setEditExpenseCategory] = useState<ExpenseCategory>('Other');
   const [editExpenseMember, setEditExpenseMember] = useState<FamilyMember | ''>('');
@@ -749,7 +750,7 @@ export default function Home() {
   const visibleExpenses = expenseEntries.filter(({details}) =>
     (expenseCategory === 'all' || details.category === expenseCategory) &&
     (expenseCategory !== 'Family' || expenseMember === 'all' || (expenseMember === 'unassigned' ? !details.member : details.member === expenseMember)));
-  const visibleExpenseTotal = visibleExpenses.reduce((sum, {expense}) => sum + Number(expense.amount), 0);
+  const expenseActionDetails = expenseAction ? readExpensePurpose(expenseAction.purpose) : null;
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
 
   const matches = (i: Item) =>
@@ -1184,20 +1185,15 @@ export default function Home() {
               )}
             </section>
             <section className="panel expense-history">
-              <h2>Expense history · {money(visibleExpenseTotal)}</h2>
+              <h2>Expense history</h2>
               {visibleExpenses.length === 0 ? <p className="empty">No expenses match this selection.</p> : (
                 <ul className="rows">
                   {visibleExpenses.map(({expense: e, details}) => (
                     <li key={e.id}>
-                      <span className="row-main">{details.purpose}<small>{details.category === 'Family' ? `Family · ${details.member || 'No person'}` : details.category} · {dateTime(e.created_at)}</small></span>
+                      <strong className="row-main">{details.purpose}</strong>
                       <span className="row-end">
                         {money(e.amount)}
-                        <button type="button" className="icon-btn" aria-label={`Change category: ${details.purpose}`} onClick={() => openExpenseCategory(e)}>
-                          <Pencil size={17} aria-hidden="true" />
-                        </button>
-                        <button type="button" className="icon-btn" aria-label={`Delete expense: ${details.purpose}`} onClick={() => askToDeleteExpense(e)}>
-                          <Trash2 size={17} aria-hidden="true" />
-                        </button>
+                        <button type="button" className="icon-btn" aria-label={`Options for ${details.purpose}`} aria-haspopup="dialog" onClick={() => setExpenseAction(e)}><MoreHorizontal size={21} aria-hidden="true" /></button>
                       </span>
                     </li>
                   ))}
@@ -1236,9 +1232,22 @@ export default function Home() {
       )}
       {actionItem && (
         <Modal title={`Actions for ${actionItem.name}`} onClose={() => setActionItem(null)}>
-          <div className="inventory-action-list">
+          <div className="modal-choice-list">
             <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const item = actionItem; setActionItem(null); openItemModal(item); }}><Pencil size={18} aria-hidden="true" /> Edit item</button>
             <button type="button" className="btn btn-danger" onClick={() => { const item = actionItem; setActionItem(null); askToRemoveItem(item); }}><Trash2 size={18} aria-hidden="true" /> Remove item</button>
+          </div>
+        </Modal>
+      )}
+      {expenseAction && expenseActionDetails && (
+        <Modal title="Expense details" onClose={() => setExpenseAction(null)}>
+          <div className="expense-detail">
+            <strong>{expenseActionDetails.purpose}</strong>
+            <span>{money(expenseAction.amount)}</span>
+            <small>{dateTime(expenseAction.created_at)} · {expenseActionDetails.category}{expenseActionDetails.member ? ` · ${expenseActionDetails.member}` : ''}</small>
+          </div>
+          <div className="modal-choice-list">
+            <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const expense = expenseAction; setExpenseAction(null); openExpenseCategory(expense); }}><Pencil size={18} aria-hidden="true" /> Change category</button>
+            <button type="button" className="btn btn-danger" onClick={() => { const expense = expenseAction; setExpenseAction(null); askToDeleteExpense(expense); }}><Trash2 size={18} aria-hidden="true" /> Delete expense</button>
           </div>
         </Modal>
       )}

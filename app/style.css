@@ -136,6 +136,16 @@ aside {
 
 .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
 .page-head p { margin-top: 0.25rem; color: var(--muted); max-width: 40rem; }
+.dashboard-head { justify-content: flex-end; }
+.dashboard-filter { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; margin-left: auto; }
+.dashboard-filter-select { display: flex; align-items: center; gap: 0.5rem; }
+.dashboard-filter-select svg { flex-shrink: 0; color: var(--muted); }
+.dashboard-filter-select select { width: auto; min-width: 10.5rem; }
+.dashboard-custom-dates { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+.dashboard-custom-dates label { display: grid; gap: 0.25rem; font-size: 0.8125rem; font-weight: 600; }
+.dashboard-custom-dates input { width: 10rem; }
+.dashboard-filter .dashboard-range { margin: 0; font-size: 0.8125rem; }
+.dashboard-filter .dashboard-date-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 
 /* Buttons */
 .btn {
@@ -183,6 +193,8 @@ aside {
 .hero-note { font-size: 0.875rem; color: #dce9e2; }
 
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-profit { grid-column: 1 / -1; }
 
 .stat, .panel, .product, .stock-card {
   background: var(--surface);

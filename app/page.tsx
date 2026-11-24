@@ -1,13 +1,14 @@
 'use client';
 import {useEffect, useId, useRef, useState, type FormEvent, type ReactNode} from 'react';
 import {createClient, type SupabaseClient} from '@supabase/supabase-js';
-import {AlertTriangle, CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, LayoutDashboard, LogOut, Minus, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CircleAlert, CircleCheck, ClipboardList, Eye, EyeOff, Filter, LayoutDashboard, LogOut, Minus, Package, PackagePlus, Pencil, Percent, Plus, Receipt, Search, Settings, ShoppingCart, Trash2, X} from 'lucide-react';
 
 type Item = {id: string; name: string; category: string; quantity: number; cost: number; price: number; archived?: boolean};
 type Sale = {id: string; item_id: string; item_name: string; quantity: number; unit_cost: number; unit_price: number; list_price?: number | null; created_at: string};
 type Expense = {id: string; purpose: string; amount: number; created_at: string};
 type ItemValues = Omit<Item, 'id'>;
 type Tab = 'Dashboard' | 'Add new' | 'Inventory' | 'Sell' | 'Sold items' | 'Expenses' | 'Admin';
+type DashboardPeriod = 'today' | 'yesterday' | 'week' | 'month' | 'three-months' | 'custom' | 'all';
 type Notice = {text: string; error: boolean};
 type ConfirmRequest = {title: string; body: ReactNode; actionLabel: string; danger?: boolean; run: () => Promise<void>};
 
@@ -27,6 +28,40 @@ const money = (n: number) =>
   (n < 0 ? '-' : '') + 'GH₵ ' + Math.abs(n).toLocaleString('en-GH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'});
 const dateTime = (iso: string) => new Date(iso).toLocaleString(undefined, {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
+const inputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const fromInputDate = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+const dashboardDates = (period: DashboardPeriod, from: string, to: string, now: Date): [Date, Date] | null => {
+  if (period === 'all') return null;
+  if (period === 'custom') {
+    if (!from || !to || from > to) return null;
+    const end = fromInputDate(to);
+    end.setDate(end.getDate() + 1);
+    return [fromInputDate(from), end];
+  }
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (period === 'today') return [today, tomorrow];
+  if (period === 'yesterday') {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return [yesterday, today];
+  }
+  if (period === 'week') {
+    const thisMonday = new Date(today);
+    thisMonday.setDate(thisMonday.getDate() - ((thisMonday.getDay() + 6) % 7));
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setDate(lastMonday.getDate() - 7);
+    return [lastMonday, thisMonday];
+  }
+  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  return period === 'month'
+    ? [new Date(today.getFullYear(), today.getMonth() - 1, 1), thisMonth]
+    : [new Date(today.getFullYear(), today.getMonth() - 3, 1), thisMonth];
+};
 
 const isDiscounted = (s: Sale) => s.list_price != null && Number(s.unit_price) < Number(s.list_price);
 const discountEach = (s: Sale) => Number(s.list_price) - Number(s.unit_price);
@@ -318,6 +353,9 @@ export default function Home() {
   const [addQty, setAddQty] = useState<Record<string, string>>({});
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('');
+  const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>('today');
+  const [dashboardFrom, setDashboardFrom] = useState('');
+  const [dashboardTo, setDashboardTo] = useState('');
   const heading = useRef<HTMLHeadingElement>(null);
   const firstTabRender = useRef(true);
   const lastAdd = useRef({id: '', at: 0});
@@ -582,9 +620,15 @@ export default function Home() {
   const usedCategories = Array.from(new Set(activeItems.map(i => i.category))).sort((a, b) => a.localeCompare(b));
   const stockValue = activeItems.reduce((s, i) => s + i.quantity * i.cost, 0);
   const investment = stockValue + sales.reduce((s, i) => s + i.quantity * i.unit_cost, 0);
-  const revenue = sales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const gross = sales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
   const expenseTotal = expenses.reduce((s, i) => s + Number(i.amount), 0);
+  const dateRange = dashboardDates(dashboardPeriod, dashboardFrom, dashboardTo, new Date());
+  const validDashboardRange = dashboardPeriod !== 'custom' || (!!dashboardFrom && !!dashboardTo && dashboardFrom <= dashboardTo);
+  const inDashboardPeriod = (createdAt: string) => validDashboardRange && (!dateRange || (new Date(createdAt) >= dateRange[0] && new Date(createdAt) < dateRange[1]));
+  const dashboardSales = sales.filter(s => inDashboardPeriod(s.created_at));
+  const dashboardExpenses = expenses.filter(e => inDashboardPeriod(e.created_at));
+  const revenue = dashboardSales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const gross = dashboardSales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
+  const dashboardExpenseTotal = dashboardExpenses.reduce((s, i) => s + Number(i.amount), 0);
   const soldByItem = sales.reduce<Record<string, number>>((m, s) => { m[s.item_id] = (m[s.item_id] || 0) + s.quantity; return m; }, {});
   const overallCount = (i: Item) => i.quantity + (soldByItem[i.id] || 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
@@ -643,11 +687,49 @@ export default function Home() {
           </span>
         </div>
 
-        <div className="page-head">
-          <div>
-            <h1 ref={heading} tabIndex={-1}>{tab}</h1>
-            {current.intro && <p>{current.intro}</p>}
-          </div>
+        <div className={tab === 'Dashboard' ? 'page-head dashboard-head' : 'page-head'}>
+          {tab === 'Dashboard' ? (
+            <h1 ref={heading} tabIndex={-1} className="sr-only">Dashboard</h1>
+          ) : (
+            <div>
+              <h1 ref={heading} tabIndex={-1}>{tab}</h1>
+              {current.intro && <p>{current.intro}</p>}
+            </div>
+          )}
+          {tab === 'Dashboard' && (
+            <div className="dashboard-filter">
+              <label className="dashboard-filter-select">
+                <Filter size={18} aria-hidden="true" />
+                <span className="sr-only">Dashboard period</span>
+                <select value={dashboardPeriod} onChange={e => {
+                  const period = e.target.value as DashboardPeriod;
+                  if (period === 'custom' && !dashboardFrom && !dashboardTo) {
+                    const today = inputDate(new Date());
+                    setDashboardFrom(today);
+                    setDashboardTo(today);
+                  }
+                  setDashboardPeriod(period);
+                }}>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">Last week</option>
+                  <option value="month">Last month</option>
+                  <option value="three-months">Last 3 months</option>
+                  <option value="custom">Choose period</option>
+                  <option value="all">All time</option>
+                </select>
+              </label>
+              {dashboardPeriod === 'custom' && (
+                <div className="dashboard-custom-dates">
+                  <label>From <input type="date" value={dashboardFrom} max={dashboardTo || undefined} onChange={e => setDashboardFrom(e.target.value)} /></label>
+                  <label>To <input type="date" value={dashboardTo} min={dashboardFrom || undefined} onChange={e => setDashboardTo(e.target.value)} /></label>
+                </div>
+              )}
+              {!validDashboardRange ? <p className="dashboard-date-error" role="alert">Choose a start date before the end date.</p> : dateRange && (
+                <p className="dashboard-range">{shortDate(dateRange[0].toISOString())} – {shortDate(new Date(dateRange[1].getTime() - 1).toISOString())}</p>
+              )}
+            </div>
+          )}
           {tab === 'Inventory' && (
             <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}>
               <Plus size={18} aria-hidden="true" /> Add stock
@@ -671,16 +753,16 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="stats" aria-label="Shop totals">
-              <div className="stat"><span className="stat-label">All-time sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from every item ever sold</span></div>
-              <div className="stat"><span className="stat-label">Your all-time profit</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
-              <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(expenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
+            <section className="stats dashboard-stats" aria-label="Shop totals for selected period">
+              <div className="stat"><span className="stat-label">Sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from recorded sales</span></div>
+              <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(dashboardExpenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
+              <div className="stat dashboard-profit"><span className="stat-label">Profit</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
             </section>
 
             <section className="hero" aria-label="Profit after expenses">
               <div>
                 <span className="hero-label">Profit after expenses</span>
-                <strong className="hero-value">{money(gross - expenseTotal)}</strong>
+                <strong className="hero-value">{money(gross - dashboardExpenseTotal)}</strong>
                 <span className="hero-note">Sales minus buying cost and recorded expenses.</span>
               </div>
             </section>
@@ -699,9 +781,9 @@ export default function Home() {
             <div className="two">
               <section className="panel">
                 <h2>Recent sales</h2>
-                {sales.length === 0 ? <p className="empty">No sales recorded yet.</p> : (
+                {dashboardSales.length === 0 ? <p className="empty">No sales in this period.</p> : (
                   <ul className="rows">
-                    {sales.slice(0, 5).map(s => (
+                    {dashboardSales.slice(0, 5).map(s => (
                       <li key={s.id}>
                         <span className="row-main">{s.item_name} × {s.quantity}<small>{shortDate(s.created_at)}</small></span>
                         <span className="row-end">{money(s.quantity * s.unit_price)}</span>
@@ -709,7 +791,7 @@ export default function Home() {
                     ))}
                   </ul>
                 )}
-                {sales.length > 5 && <button type="button" className="link-btn" onClick={() => goTo('Sold items')}>See all {sales.length} in Sold items</button>}
+                {dashboardSales.length > 5 && <button type="button" className="link-btn" onClick={() => goTo('Sold items')}>See all sold items</button>}
               </section>
               <section className="panel">
                 <h2>Running low</h2>

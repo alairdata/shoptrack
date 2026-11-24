@@ -20,7 +20,7 @@ const tabs = [
   {name: 'Sell', short: 'Sell', icon: ShoppingCart, intro: 'Choose an item and record the sale. Stock and profit update automatically.'},
   {name: 'Sold items', short: 'Sold', icon: ClipboardList, intro: 'A record of everything you have sold, newest first.'},
   {name: 'Expenses', short: 'Expenses', icon: Receipt, intro: 'Transport, packaging, rent and other shop costs. Stock purchases belong under Inventory.'},
-  {name: 'Inventory', short: 'Inventory', icon: Package, intro: 'See what is in your shop now.'},
+  {name: 'Inventory', short: 'Inventory', icon: Package, intro: ''},
   {name: 'Admin', short: 'Admin', icon: Settings, intro: 'Add, rename or remove your item groups, like Dresses or Shoes.'},
 ] as const;
 
@@ -687,9 +687,9 @@ export default function Home() {
           </span>
         </div>
 
-        <div className={tab === 'Dashboard' ? 'page-head dashboard-head' : 'page-head'}>
-          {tab === 'Dashboard' ? (
-            <h1 ref={heading} tabIndex={-1} className="sr-only">Dashboard</h1>
+        <div className={tab === 'Dashboard' ? 'page-head dashboard-head' : tab === 'Inventory' ? 'page-head inventory-head' : 'page-head'}>
+          {tab === 'Dashboard' || tab === 'Inventory' ? (
+            <h1 ref={heading} tabIndex={-1} className="sr-only">{tab}</h1>
           ) : (
             <div>
               <h1 ref={heading} tabIndex={-1}>{tab}</h1>
@@ -872,7 +872,6 @@ export default function Home() {
               {shownItems.length === 0 ? noMatch : (
                 <>
                   <section className="panel stock-table inventory-table" aria-label="All inventory">
-                    <p className="inventory-scroll-hint">Swipe sideways to see all columns →</p>
                     <div className="tablewrap" tabIndex={0} role="region" aria-label="Inventory table">
                       <table>
                         <thead>

@@ -13,7 +13,6 @@ type Notice = {text: string; error: boolean};
 type ConfirmRequest = {title: string; body: ReactNode; actionLabel: string; danger?: boolean; run: () => Promise<void>};
 
 const categories = ['Dresses', 'Jackets', 'Shoes', 'Shorts', 'Tops', 'Anklets', 'Bandanas', 'Socks'];
-const categorySymbols: Record<string, string> = {Dresses: '👗', Jackets: '🧥', Shoes: '👟', Shorts: '🩳', Tops: '👕', Anklets: '📿', Bandanas: '🧣', Socks: '🧦'};
 const LOW_STOCK = 3;
 const tabs = [
   {name: 'Dashboard', short: 'Home', icon: LayoutDashboard, intro: ''},
@@ -21,12 +20,14 @@ const tabs = [
   {name: 'Sell', short: 'Sell', icon: ShoppingCart, intro: 'Choose an item and record the sale. Stock and profit update automatically.'},
   {name: 'Sold items', short: 'Sold', icon: ClipboardList, intro: 'A record of everything you have sold, newest first.'},
   {name: 'Expenses', short: 'Expenses', icon: Receipt, intro: 'Transport, packaging, rent and other shop costs. Stock purchases belong under Inventory.'},
-  {name: 'Inventory', short: 'Inventory', icon: Package, intro: 'Add and update what you have in stock.'},
+  {name: 'Inventory', short: 'Inventory', icon: Package, intro: 'See what is in your shop now.'},
   {name: 'Admin', short: 'Admin', icon: Settings, intro: 'Add, rename or remove your item groups, like Dresses or Shoes.'},
 ] as const;
 
 const money = (n: number) =>
   (n < 0 ? '-' : '') + 'GH₵ ' + Math.abs(n).toLocaleString('en-GH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const amount = (n: number) =>
+  (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('en-GH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'});
 const dateTime = (iso: string) => new Date(iso).toLocaleString(undefined, {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
 const inputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -108,16 +109,6 @@ function StockCount({quantity}: {quantity: number}) {
   if (quantity === 0) return <span className="badge badge-out">Out of stock</span>;
   if (quantity <= LOW_STOCK) return <span className="badge badge-low">{quantity} left</span>;
   return <>{quantity}</>;
-}
-
-function InventoryItemLabel({item}: {item: Item}) {
-  return <span className="inventory-item"><span className="inventory-item-symbol" aria-hidden="true">{categorySymbols[item.category] || '📦'}</span><span className="inventory-item-text"><strong>{item.name}</strong><small>{item.category}</small></span></span>;
-}
-
-function InventoryStatus({quantity}: {quantity: number}) {
-  const state = quantity === 0 ? 'finished' : quantity <= LOW_STOCK ? 'low' : 'available';
-  const label = state === 'finished' ? 'Finished' : state === 'low' ? 'Running low' : 'Available';
-  return <span className={`inventory-status inventory-status-${state}`}><span className="inventory-status-dot" aria-hidden="true" />{label}</span>;
 }
 
 function ItemForm(props: {
@@ -629,7 +620,6 @@ export default function Home() {
 
   const activeItems = items.filter(i => !i.archived);
   const categoryOptions = Array.from(new Set([...savedCategories, ...activeItems.map(i => i.category), ...(savedCategories.length === 0 ? categories : [])])).sort((a, b) => a.localeCompare(b));
-  const usedCategories = Array.from(new Set(activeItems.map(i => i.category))).sort((a, b) => a.localeCompare(b));
   const stockValue = activeItems.reduce((s, i) => s + i.quantity * i.cost, 0);
   const investment = stockValue + sales.reduce((s, i) => s + i.quantity * i.unit_cost, 0);
   const expenseTotal = expenses.reduce((s, i) => s + Number(i.amount), 0);
@@ -739,11 +729,6 @@ export default function Home() {
                 <p className="dashboard-range">{shortDate(dateRange[0].toISOString())} – {shortDate(new Date(dateRange[1].getTime() - 1).toISOString())}</p>
               )}
             </div>
-          )}
-          {tab === 'Inventory' && (
-            <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}>
-              <Plus size={18} aria-hidden="true" /> New item
-            </button>
           )}
           {tab === 'Expenses' && (
             <button type="button" className="btn btn-primary" onClick={() => { setFormError(''); setExpenseModal(true); }}>
@@ -862,6 +847,7 @@ export default function Home() {
                             <Plus size={18} aria-hidden="true" /> Add
                           </button>
                         </div>
+                        <button type="button" className="btn btn-secondary restock-edit" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}><Pencil size={16} aria-hidden="true" /> Edit item</button>
                         {!valid && <p className="field-error" role="alert">Enter a whole number from 1 to 9999.</p>}
                       </li>
                     );
@@ -877,11 +863,11 @@ export default function Home() {
           activeItems.length === 0 ? (
             <section className="panel empty-block">
               <p>You have no stock yet. Add your first item to get started.</p>
-              <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}><Plus size={18} aria-hidden="true" /> New item</button>
+              <button type="button" className="btn btn-primary" onClick={() => goTo('Add new')}><Plus size={18} aria-hidden="true" /> Go to Add new</button>
             </section>
           ) : (
             <>
-              <Toolbar label="Search inventory" query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} options={usedCategories} shown={shownItems.length} total={activeItems.length} />
+              <Toolbar label="Search inventory" query={query} setQuery={setQuery} filter="" setFilter={setFilter} options={[]} shown={shownItems.length} total={activeItems.length} />
               {shownItems.length === 0 ? noMatch : (
                 <>
                   <section className="panel stock-table inventory-table" aria-label="All inventory">
@@ -892,30 +878,17 @@ export default function Home() {
                           <tr>
                             <th scope="col">Item</th>
                             <th scope="col">In stock</th>
-                            <th scope="col">Selling each</th>
                             <th scope="col">Total cost</th>
-                            <th scope="col" title="Possible profit if all units in stock sell at their listed prices">Total profit</th>
-                            <th scope="col">Status</th>
                             <th scope="col">Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {shownItems.map(i => (
                             <tr key={i.id}>
-                              <td className="inventory-name"><InventoryItemLabel item={i} /></td>
+                              <td className="inventory-name"><strong className={i.quantity <= LOW_STOCK ? 'inventory-name-alert' : undefined}>{i.name}{i.quantity <= LOW_STOCK && <span className="sr-only">, {i.quantity === 0 ? 'out of stock' : 'running low'}</span>}</strong></td>
                               <td><strong className="inventory-quantity">{i.quantity}</strong></td>
-                              <td>{money(i.price)}</td>
-                              <td>{money(i.quantity * i.cost)}</td>
-                              <td>{money(i.quantity * (i.price - i.cost))}</td>
-                              <td><InventoryStatus quantity={i.quantity} /></td>
-                              <td><span className="inventory-actions">
-                                <button type="button" className="btn btn-secondary" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}>
-                                  <Pencil size={16} aria-hidden="true" /> Edit
-                                </button>
-                                <button type="button" className="icon-btn" aria-label={`Remove ${i.name}`} title={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}>
-                                  <Trash2 size={17} aria-hidden="true" />
-                                </button>
-                              </span></td>
+                              <td>{amount(i.quantity * i.cost)}</td>
+                              <td><button type="button" className="btn btn-secondary" aria-label={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}>Remove</button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -932,7 +905,7 @@ export default function Home() {
           sellable.length === 0 ? (
             <section className="panel empty-block">
               <p>No items in stock to sell. Add stock first.</p>
-              <button type="button" className="btn btn-primary" onClick={() => { goTo('Inventory'); openItemModal(null); }}><Plus size={18} aria-hidden="true" /> Add stock</button>
+              <button type="button" className="btn btn-primary" onClick={() => goTo('Add new')}><Plus size={18} aria-hidden="true" /> Add stock</button>
             </section>
           ) : (
             <>

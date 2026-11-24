@@ -121,11 +121,24 @@ function PeriodFilter({label, period, setPeriod, from, setFrom, to, setTo, range
 const isDiscounted = (s: Sale) => s.list_price != null && Number(s.unit_price) < Number(s.list_price);
 const discountEach = (s: Sale) => Number(s.list_price) - Number(s.unit_price);
 
-// The live expenses table has no category columns, so a readable tag keeps categories shared across phones.
+const guessExpenseGroup = (purpose: string): {category: ExpenseCategory; member: FamilyMember | ''} => {
+  if (/\belsie\b/i.test(purpose)) return {category: 'Family', member: 'Elsie'};
+  if (/\byaa\b/i.test(purpose)) return {category: 'Family', member: 'Yaa'};
+  if (/\b(children|child|kids?)\b/i.test(purpose)) return {category: 'Family', member: 'Children'};
+  if (/\bdad\b|\bfather\b/i.test(purpose)) return {category: 'Family', member: 'Dad'};
+  if (/(?:^|\bfor\s+)d(?:'s)?\b/i.test(purpose)) return {category: 'Family', member: 'D'};
+  if (/\b(family|school|allowance|baby|mother|mum|mom|parent)\b/i.test(purpose)) return {category: 'Family', member: ''};
+  if (/\b(food|grocer(?:y|ies)|rice|yam|bread|meat|fish|vegetable|tomato|onion|plantain|oil|gari|garri|kenkey|waakye|banku|fufu|market|fruit|drink)\b/i.test(purpose)) return {category: 'Food items', member: ''};
+  if (/\b(house|home|rent|electricity|water|gas|light|utility|utilities|cleaning|furniture|repair|plumb(?:er|ing)|broom|detergent)\b/i.test(purpose)) return {category: 'House stuff', member: ''};
+  if (/\b(personal|hair|nail|makeup|cosmetic|salon|clothes|dress|shoe|airtime|data|phone|medicine|hospital|clinic|toiletries|skincare)\b/i.test(purpose)) return {category: 'Personal', member: ''};
+  return {category: 'Other', member: ''};
+};
+
+// Tags preserve manual corrections in the existing expenses table; untagged entries are grouped from their descriptions.
 const expensePurpose = (purpose: string, category: ExpenseCategory, member: FamilyMember | '') => `[ST:${category}${member ? `:${member}` : ''}] ${purpose}`;
 const readExpensePurpose = (raw: string): {purpose: string; category: ExpenseCategory; member: FamilyMember | ''} => {
   const match = raw.match(/^\[ST:(Family|Food items|House stuff|Personal|Other)(?::(Elsie|Yaa|Children|D|Dad))?\] ([\s\S]*)$/);
-  if (!match || (match[1] === 'Family' && !match[2]) || (match[1] !== 'Family' && match[2])) return {purpose: raw, category: 'Other', member: ''};
+  if (!match || (match[1] !== 'Family' && match[2])) return {purpose: raw, ...guessExpenseGroup(raw)};
   return {purpose: match[3], category: match[1] as ExpenseCategory, member: (match[2] || '') as FamilyMember | ''};
 };
 
@@ -245,33 +258,17 @@ function ItemForm(props: {
   );
 }
 
-function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: string; onSubmit: (purpose: string, amount: number, category: ExpenseCategory, member: FamilyMember | '') => void; onCancel: () => void}) {
-  const [category, setCategory] = useState<ExpenseCategory | ''>('');
-  const [member, setMember] = useState<FamilyMember | ''>('');
+function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: string; onSubmit: (purpose: string, amount: number) => void; onCancel: () => void}) {
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
+  const group = guessExpenseGroup(purpose);
   return (
-    <form className="formgrid" onSubmit={e => { e.preventDefault(); if (category && (category !== 'Family' || member)) onSubmit(purpose.trim(), Number(amount), category, member); }}>
-      <label className="field wide">
-        Category
-        <select data-autofocus required value={category} onChange={e => { setCategory(e.target.value as ExpenseCategory | ''); setMember(''); }}>
-          <option value="">Choose category</option>
-          {expenseCategories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </label>
-      {category === 'Family' && (
-        <label className="field wide">
-          Who was it for?
-          <select required value={member} onChange={e => setMember(e.target.value as FamilyMember | '')}>
-            <option value="">Choose person</option>
-            {familyMembers.map(name => <option key={name} value={name}>{name}</option>)}
-          </select>
-        </label>
-      )}
+    <form className="formgrid" onSubmit={e => { e.preventDefault(); onSubmit(purpose.trim(), Number(amount)); }}>
       <label className="field wide">
         What was the money used for?
-        <input required maxLength={200} placeholder="e.g. Delivery transport" value={purpose} onChange={e => setPurpose(e.target.value)} />
+        <input data-autofocus required maxLength={200} placeholder="e.g. Rice for Elsie" value={purpose} onChange={e => setPurpose(e.target.value)} />
       </label>
+      {purpose.trim() && <p className="expense-group-preview wide">Group: <b>{group.category}{group.member ? ` · ${group.member}` : ''}</b></p>}
       <label className="field wide">
         Amount (GH₵)
         <input type="number" inputMode="decimal" min="0.01" step="0.01" required value={amount} onChange={e => setAmount(e.target.value)} />
@@ -279,7 +276,7 @@ function ExpenseForm({busy, error, onSubmit, onCancel}: {busy: boolean; error: s
       <FormError text={error} />
       <div className="modal-actions wide">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-        <button className="btn btn-primary" disabled={busy || !category || (category === 'Family' && !member)}>{busy ? 'Saving…' : 'Save expense'}</button>
+        <button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</button>
       </div>
     </form>
   );
@@ -446,7 +443,7 @@ export default function Home() {
   const [expenseFrom, setExpenseFrom] = useState('');
   const [expenseTo, setExpenseTo] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory | 'all'>('all');
-  const [expenseMember, setExpenseMember] = useState<FamilyMember | 'all'>('all');
+  const [expenseMember, setExpenseMember] = useState<FamilyMember | 'all' | 'unassigned'>('all');
   const heading = useRef<HTMLHeadingElement>(null);
   const firstTabRender = useRef(true);
   const lastAdd = useRef({id: '', at: 0});
@@ -536,14 +533,13 @@ export default function Home() {
     setBusy(false);
   }
 
-  async function saveExpense(purpose: string, amount: number, category: ExpenseCategory, member: FamilyMember | '') {
+  async function saveExpense(purpose: string, amount: number) {
     if (!db) return;
     if (!purpose) return setFormError('Say what the money was used for.');
-    if (category === 'Family' && !member) return setFormError('Choose who the family expense was for.');
     if (!Number.isFinite(amount) || amount <= 0) return setFormError('Amount must be more than zero.');
     setBusy(true);
     setFormError('');
-    const {error} = await db.from('expenses').insert({purpose: expensePurpose(purpose, category, member), amount});
+    const {error} = await db.from('expenses').insert({purpose, amount});
     if (error) setFormError(error.message);
     else {
       setExpenseModal(false);
@@ -563,7 +559,7 @@ export default function Home() {
 
   async function saveExpenseCategory(e: FormEvent) {
     e.preventDefault();
-    if (!db || !classifyingExpense || (editExpenseCategory === 'Family' && !editExpenseMember)) return;
+    if (!db || !classifyingExpense) return;
     setBusy(true);
     setFormError('');
     const purpose = readExpensePurpose(classifyingExpense.purpose).purpose;
@@ -752,7 +748,7 @@ export default function Home() {
   const expenseEntries = expenseHistory.map(expense => ({expense, details: readExpensePurpose(expense.purpose)}));
   const visibleExpenses = expenseEntries.filter(({details}) =>
     (expenseCategory === 'all' || details.category === expenseCategory) &&
-    (expenseCategory !== 'Family' || expenseMember === 'all' || details.member === expenseMember));
+    (expenseCategory !== 'Family' || expenseMember === 'all' || (expenseMember === 'unassigned' ? !details.member : details.member === expenseMember)));
   const visibleExpenseTotal = visibleExpenses.reduce((sum, {expense}) => sum + Number(expense.amount), 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
 
@@ -1182,6 +1178,7 @@ export default function Home() {
                     {familyMembers.map(member => (
                       <button key={member} type="button" className="expense-family-member" aria-pressed={expenseMember === member} onClick={() => setExpenseMember(member)}><span>{member}</span><strong>{money(expenseEntries.filter(({details}) => details.member === member).reduce((sum, {expense}) => sum + Number(expense.amount), 0))}</strong></button>
                     ))}
+                    <button type="button" className="expense-family-member" aria-pressed={expenseMember === 'unassigned'} onClick={() => setExpenseMember('unassigned')}><span>No person</span><strong>{money(expenseEntries.filter(({details}) => details.category === 'Family' && !details.member).reduce((sum, {expense}) => sum + Number(expense.amount), 0))}</strong></button>
                   </div>
                 </div>
               )}
@@ -1192,7 +1189,7 @@ export default function Home() {
                 <ul className="rows">
                   {visibleExpenses.map(({expense: e, details}) => (
                     <li key={e.id}>
-                      <span className="row-main">{details.purpose}<small>{details.category}{details.member ? ` · ${details.member}` : ''} · {dateTime(e.created_at)}</small></span>
+                      <span className="row-main">{details.purpose}<small>{details.category === 'Family' ? `Family · ${details.member || 'No person'}` : details.category} · {dateTime(e.created_at)}</small></span>
                       <span className="row-end">
                         {money(e.amount)}
                         <button type="button" className="icon-btn" aria-label={`Change category: ${details.purpose}`} onClick={() => openExpenseCategory(e)}>
@@ -1266,8 +1263,8 @@ export default function Home() {
             </label>
             {editExpenseCategory === 'Family' && (
               <label className="field wide">Who was it for?
-                <select required value={editExpenseMember} onChange={e => setEditExpenseMember(e.target.value as FamilyMember | '')}>
-                  <option value="">Choose person</option>
+                <select value={editExpenseMember} onChange={e => setEditExpenseMember(e.target.value as FamilyMember | '')}>
+                  <option value="">No person</option>
                   {familyMembers.map(member => <option key={member} value={member}>{member}</option>)}
                 </select>
               </label>
@@ -1275,7 +1272,7 @@ export default function Home() {
             <FormError text={formError} />
             <div className="modal-actions wide">
               <button type="button" className="btn btn-secondary" onClick={() => setClassifyingExpense(null)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={busy || (editExpenseCategory === 'Family' && !editExpenseMember)}>{busy ? 'Saving…' : 'Save category'}</button>
+              <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save category'}</button>
             </div>
           </form>
         </Modal>

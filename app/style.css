@@ -324,6 +324,7 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
 .expense-category[aria-pressed='true'], .expense-family-member[aria-pressed='true'] { border-color: var(--green-900); background: var(--tint); color: var(--green-900); }
 .expense-family { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .expense-family h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+.expense-group-preview { color: var(--muted); font-size: 0.875rem; }
 
 .stock-cards { display: none; }
 .stock-card { display: grid; gap: 0.625rem; padding: 0.875rem; }

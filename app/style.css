@@ -182,7 +182,7 @@ aside {
 .hero-value { display: block; margin: 0.25rem 0; font-size: clamp(2rem, 6vw, 2.75rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .hero-note { font-size: 0.875rem; color: #dce9e2; }
 
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 
 .stat, .panel, .product, .stock-card {
   background: var(--surface);

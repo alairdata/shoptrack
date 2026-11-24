@@ -585,9 +585,6 @@ export default function Home() {
   const revenue = sales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
   const gross = sales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
   const expenseTotal = expenses.reduce((s, i) => s + Number(i.amount), 0);
-  const todaySales = sales.filter(s => new Date(s.created_at).toDateString() === new Date().toDateString());
-  const todayTotal = todaySales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const todayCount = todaySales.reduce((n, s) => n + s.quantity, 0);
   const soldByItem = sales.reduce<Record<string, number>>((m, s) => { m[s.item_id] = (m[s.item_id] || 0) + s.quantity; return m; }, {});
   const overallCount = (i: Item) => i.quantity + (soldByItem[i.id] || 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
@@ -678,14 +675,13 @@ export default function Home() {
               <div className="stat"><span className="stat-label">All-time sales</span><strong className="stat-value">{money(revenue)}</strong><span className="stat-note">Money from every item ever sold</span></div>
               <div className="stat"><span className="stat-label">Your all-time profit</span><strong className="stat-value">{money(gross)}</strong><span className="stat-note">Sales minus buying cost</span></div>
               <div className="stat"><span className="stat-label">Expenses</span><strong className="stat-value">{money(expenseTotal)}</strong><span className="stat-note">Transport, rent and so on</span></div>
-              <div className="stat"><span className="stat-label">Today&apos;s sales</span><strong className="stat-value">{money(todayTotal)}</strong><span className="stat-note">{todayCount === 0 ? 'No sales yet today' : `${todayCount} ${todayCount === 1 ? 'piece' : 'pieces'} sold today`}</span></div>
             </section>
 
-            <section className="hero" aria-label="Cost of items sold">
+            <section className="hero" aria-label="Profit after expenses">
               <div>
-                <span className="hero-label">Cost of items sold</span>
-                <strong className="hero-value">{money(revenue - gross)}</strong>
-                <span className="hero-note">What you paid for everything you have sold. All-time sales minus your all-time profit.</span>
+                <span className="hero-label">Profit after expenses</span>
+                <strong className="hero-value">{money(gross - expenseTotal)}</strong>
+                <span className="hero-note">Sales minus buying cost and recorded expenses.</span>
               </div>
             </section>
 

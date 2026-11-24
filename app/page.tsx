@@ -318,14 +318,6 @@ function SaleForm({item, qty, discount, busy, error, onSubmit, onCancel}: {item:
   );
 }
 
-function DiscountMark({sale, onOpen}: {sale: Sale; onOpen: () => void}) {
-  return (
-    <button type="button" className="discount-mark" title="Sold at a discount" aria-label={`Sold at a discount: ${sale.item_name}. See details`} onClick={onOpen}>
-      <Percent size={15} aria-hidden="true" />
-    </button>
-  );
-}
-
 function Stepper({itemName, value, max, onChange}: {itemName: string; value: string; max: number; onChange: (value: string) => void}) {
   const current = Number(value) || 0;
   const step = (next: number) => { if (next >= 1 && next <= max) onChange(String(next)); };
@@ -349,7 +341,7 @@ function Toolbar({label, query, setQuery, filter, setFilter, options, shown, tot
     <div className="toolbar">
       <div className="search">
         <Search size={18} aria-hidden="true" />
-        <input type="search" aria-label={label} placeholder="Search items" value={query} onChange={e => setQuery(e.target.value)} />
+        <input type="search" aria-label={label} placeholder={noun === 'sale' ? 'Search sales' : 'Search items'} value={query} onChange={e => setQuery(e.target.value)} />
       </div>
       {options.length > 0 && (
         <select aria-label="Filter by category" value={filter} onChange={e => setFilter(e.target.value)}>
@@ -423,6 +415,7 @@ export default function Home() {
   const [actionItem, setActionItem] = useState<Item | null>(null);
   const [expenseModal, setExpenseModal] = useState(false);
   const [expenseAction, setExpenseAction] = useState<Expense | null>(null);
+  const [saleAction, setSaleAction] = useState<Sale | null>(null);
   const [classifyingExpense, setClassifyingExpense] = useState<Expense | null>(null);
   const [editExpenseCategory, setEditExpenseCategory] = useState<ExpenseCategory>('Other');
   const [editExpenseMember, setEditExpenseMember] = useState<FamilyMember | ''>('');
@@ -1066,68 +1059,19 @@ export default function Home() {
                   <button type="button" className="chip" aria-pressed={discountOnly} onClick={() => setDiscountOnly(v => !v)}>
                     <Percent size={15} aria-hidden="true" /> Discounted only
                   </button>
-                  <span>{discountedSales.length} {discountedSales.length === 1 ? 'sale' : 'sales'} · {money(discountedSales.reduce((n, s) => n + s.quantity * discountEach(s), 0))} given in discounts</span>
                 </div>
               )}
               {shownSales.length === 0 ? <p className="empty-block">No sold items match this selection.</p> : (
                 <>
                   <section className="stats stats-sold" aria-label="Totals for the sales listed">
-                    <div className="stat"><span className="stat-label">Units sold</span><strong className="stat-value">{shownSales.reduce((n, s) => n + s.quantity, 0)}</strong></div>
                     <div className="stat"><span className="stat-label">Total sales</span><strong className="stat-value">{money(shownSales.reduce((n, s) => n + s.quantity * s.unit_price, 0))}</strong></div>
                     <div className="stat"><span className="stat-label">Profit</span><strong className="stat-value">{money(shownSales.reduce((n, s) => n + s.quantity * (s.unit_price - s.unit_cost), 0))}</strong></div>
                   </section>
-                  <section className="panel stock-table" aria-label="All sold items">
-                    <div className="tablewrap" tabIndex={0} role="region" aria-label="Sold items table">
-                      <table className="sold-table">
-                        <thead>
-                          <tr>
-                            <th scope="col">Item</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Date sold</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Price each</th>
-                            <th scope="col">Total</th>
-                            <th scope="col">Profit</th>
-                            <th scope="col"><span className="sr-only">Actions</span></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {shownSales.map(s => (
-                            <tr key={s.id}>
-                              <td className="name"><span className="name-with-mark">{s.item_name}{isDiscounted(s) && <DiscountMark sale={s} onOpen={() => setDiscountSale(s)} />}</span></td>
-                              <td>{saleCategory(s) || '–'}</td>
-                              <td>{dateTime(s.created_at)}</td>
-                              <td>{s.quantity}</td>
-                              <td>{money(s.unit_price)}{isDiscounted(s) && <small className="was">was {money(Number(s.list_price))}</small>}</td>
-                              <td>{money(s.quantity * s.unit_price)}</td>
-                              <td>{money(s.quantity * (s.unit_price - s.unit_cost))}</td>
-                              <td>
-                                <button type="button" className="icon-btn" aria-label={`Delete sale: ${s.quantity} × ${s.item_name}, ${dateTime(s.created_at)}`} onClick={() => askToDeleteSale(s)}>
-                                  <Trash2 size={17} aria-hidden="true" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                  <ul className="stock-cards" aria-label="All sold items">
+                  <ul className="sales-history" aria-label="All sold items">
                     {shownSales.map(s => (
-                      <li className="stock-card" key={s.id}>
-                        {isDiscounted(s) && <DiscountMark sale={s} onOpen={() => setDiscountSale(s)} />}
-                        <div className={isDiscounted(s) ? 'stock-card-head has-mark' : 'stock-card-head'}>
-                          <span className="stock-card-name">{s.item_name}<small>{dateTime(s.created_at)}</small></span>
-                          <span className="sold-qty">{s.quantity} sold</span>
-                        </div>
-                        <dl>
-                          <div><dt>Price each</dt><dd>{money(s.unit_price)}{isDiscounted(s) && <small className="was">was {money(Number(s.list_price))}</small>}</dd></div>
-                          <div><dt>Total</dt><dd>{money(s.quantity * s.unit_price)}</dd></div>
-                          <div><dt>Profit</dt><dd>{money(s.quantity * (s.unit_price - s.unit_cost))}</dd></div>
-                        </dl>
-                        <button type="button" className="btn btn-secondary" aria-label={`Delete sale: ${s.quantity} × ${s.item_name}, ${dateTime(s.created_at)}`} onClick={() => askToDeleteSale(s)}>
-                          <Trash2 size={16} aria-hidden="true" /> Delete
-                        </button>
+                      <li key={s.id}>
+                        <span className="sales-history-main"><strong>{s.item_name}</strong><small>{s.quantity} sold · {shortDate(s.created_at)}{isDiscounted(s) ? ' · Discount' : ''}</small></span>
+                        <span className="sales-history-end"><strong>{money(s.quantity * s.unit_price)}</strong><button type="button" className="icon-btn" aria-label={`Details for ${s.item_name}`} aria-haspopup="dialog" onClick={() => setSaleAction(s)}><MoreHorizontal size={21} aria-hidden="true" /></button></span>
                       </li>
                     ))}
                   </ul>
@@ -1260,6 +1204,21 @@ export default function Home() {
           <div className="modal-choice-list">
             <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const expense = expenseAction; setExpenseAction(null); openExpenseCategory(expense); }}><Pencil size={18} aria-hidden="true" /> Change category</button>
             <button type="button" className="btn btn-danger" onClick={() => { const expense = expenseAction; setExpenseAction(null); askToDeleteExpense(expense); }}><Trash2 size={18} aria-hidden="true" /> Delete expense</button>
+          </div>
+        </Modal>
+      )}
+      {saleAction && (
+        <Modal title="Sale details" onClose={() => setSaleAction(null)}>
+          <div className="sale-detail-head"><strong>{saleAction.item_name}</strong><span>{money(saleAction.quantity * saleAction.unit_price)}</span><small>{dateTime(saleAction.created_at)}</small></div>
+          <ul className="rows sale-detail-rows">
+            {saleCategory(saleAction) && <li><span className="row-main">Category</span><span className="row-end">{saleCategory(saleAction)}</span></li>}
+            <li><span className="row-main">Quantity</span><span className="row-end">{saleAction.quantity}</span></li>
+            <li><span className="row-main">Price each</span><span className="row-end">{money(saleAction.unit_price)}</span></li>
+            <li><span className="row-main">Profit</span><span className="row-end">{money(saleAction.quantity * (saleAction.unit_price - saleAction.unit_cost))}</span></li>
+          </ul>
+          <div className="modal-choice-list">
+            {isDiscounted(saleAction) && <button type="button" className="btn btn-secondary" onClick={() => { const sale = saleAction; setSaleAction(null); setDiscountSale(sale); }}><Percent size={18} aria-hidden="true" /> Discount details</button>}
+            <button type="button" className="btn btn-danger" onClick={() => { const sale = saleAction; setSaleAction(null); askToDeleteSale(sale); }}><Trash2 size={18} aria-hidden="true" /> Delete sale</button>
           </div>
         </Modal>
       )}

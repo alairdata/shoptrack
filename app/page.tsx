@@ -412,7 +412,7 @@ export default function Home() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [itemModal, setItemModal] = useState<{item: Item | null} | null>(null);
-  const [actionItem, setActionItem] = useState<Item | null>(null);
+  const [actionItem, setActionItem] = useState<{item: Item; allowRemove: boolean} | null>(null);
   const [expenseModal, setExpenseModal] = useState(false);
   const [expenseAction, setExpenseAction] = useState<Expense | null>(null);
   const [saleAction, setSaleAction] = useState<Sale | null>(null);
@@ -931,7 +931,10 @@ export default function Home() {
                       <li className="stock-card" key={i.id}>
                         <div className="stock-card-head">
                           <span className="stock-card-name">{i.name}</span>
-                          <span className="sold-qty">{i.quantity > LOW_STOCK ? `${i.quantity} in stock` : <StockCount quantity={i.quantity} />}</span>
+                          <span className="restock-head-actions">
+                            <span className="sold-qty">{i.quantity > LOW_STOCK ? `${i.quantity} in stock` : <StockCount quantity={i.quantity} />}</span>
+                            <button type="button" className="icon-btn restock-more" aria-label={`Options for ${i.name}`} aria-haspopup="dialog" onClick={() => setActionItem({item: i, allowRemove: false})}><MoreHorizontal size={20} aria-hidden="true" /></button>
+                          </span>
                         </div>
                         <dl>
                           <div><dt>Cost each</dt><dd>{money(i.cost)}</dd></div>
@@ -943,7 +946,6 @@ export default function Home() {
                             <Plus size={18} aria-hidden="true" /> Add
                           </button>
                         </div>
-                        <button type="button" className="btn btn-secondary restock-edit" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}><Pencil size={16} aria-hidden="true" /> Edit item</button>
                         {!valid && <p className="field-error" role="alert">Enter a whole number from 1 to 9999.</p>}
                       </li>
                     );
@@ -983,7 +985,7 @@ export default function Home() {
                               <td className="inventory-name"><strong className={i.quantity <= LOW_STOCK ? 'inventory-name-alert' : undefined}>{i.name}{i.quantity <= LOW_STOCK && <span className="sr-only">, {i.quantity === 0 ? 'out of stock' : 'running low'}</span>}</strong></td>
                               <td><strong className="inventory-quantity">{i.quantity}</strong></td>
                               <td>{amount(i.quantity * i.cost)}</td>
-                              <td><button type="button" className="icon-btn inventory-more" aria-label={`Actions for ${i.name}`} aria-haspopup="dialog" onClick={() => setActionItem(i)}><MoreHorizontal size={22} aria-hidden="true" /></button></td>
+                              <td><button type="button" className="icon-btn inventory-more" aria-label={`Actions for ${i.name}`} aria-haspopup="dialog" onClick={() => setActionItem({item: i, allowRemove: true})}><MoreHorizontal size={22} aria-hidden="true" /></button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1187,10 +1189,10 @@ export default function Home() {
         </Modal>
       )}
       {actionItem && (
-        <Modal title={`Actions for ${actionItem.name}`} onClose={() => setActionItem(null)}>
+        <Modal title={`Options for ${actionItem.item.name}`} onClose={() => setActionItem(null)}>
           <div className="modal-choice-list">
-            <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const item = actionItem; setActionItem(null); openItemModal(item); }}><Pencil size={18} aria-hidden="true" /> Edit item</button>
-            <button type="button" className="btn btn-danger" onClick={() => { const item = actionItem; setActionItem(null); askToRemoveItem(item); }}><Trash2 size={18} aria-hidden="true" /> Remove item</button>
+            <button type="button" data-autofocus className="btn btn-secondary" onClick={() => { const item = actionItem.item; setActionItem(null); openItemModal(item); }}><Pencil size={18} aria-hidden="true" /> Edit item</button>
+            {actionItem.allowRemove && <button type="button" className="btn btn-danger" onClick={() => { const item = actionItem.item; setActionItem(null); askToRemoveItem(item); }}><Trash2 size={18} aria-hidden="true" /> Remove item</button>}
           </div>
         </Modal>
       )}

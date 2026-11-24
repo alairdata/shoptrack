@@ -13,6 +13,7 @@ type Notice = {text: string; error: boolean};
 type ConfirmRequest = {title: string; body: ReactNode; actionLabel: string; danger?: boolean; run: () => Promise<void>};
 
 const categories = ['Dresses', 'Jackets', 'Shoes', 'Shorts', 'Tops', 'Anklets', 'Bandanas', 'Socks'];
+const categorySymbols: Record<string, string> = {Dresses: '👗', Jackets: '🧥', Shoes: '👟', Shorts: '🩳', Tops: '👕', Anklets: '📿', Bandanas: '🧣', Socks: '🧦'};
 const LOW_STOCK = 3;
 const tabs = [
   {name: 'Dashboard', short: 'Home', icon: LayoutDashboard, intro: ''},
@@ -107,6 +108,16 @@ function StockCount({quantity}: {quantity: number}) {
   if (quantity === 0) return <span className="badge badge-out">Out of stock</span>;
   if (quantity <= LOW_STOCK) return <span className="badge badge-low">{quantity} left</span>;
   return <>{quantity}</>;
+}
+
+function InventoryItemLabel({item}: {item: Item}) {
+  return <span className="inventory-item"><span className="inventory-item-symbol" aria-hidden="true">{categorySymbols[item.category] || '📦'}</span><span className="inventory-item-text"><strong>{item.name}</strong><small>{item.category}</small></span></span>;
+}
+
+function InventoryStatus({quantity}: {quantity: number}) {
+  const state = quantity === 0 ? 'finished' : quantity <= LOW_STOCK ? 'low' : 'available';
+  const label = state === 'finished' ? 'Finished' : state === 'low' ? 'Running low' : 'Available';
+  return <span className={`inventory-status inventory-status-${state}`}><span className="inventory-status-dot" aria-hidden="true" />{label}</span>;
 }
 
 function ItemForm(props: {
@@ -630,8 +641,6 @@ export default function Home() {
   const revenue = dashboardSales.reduce((s, i) => s + i.quantity * i.unit_price, 0);
   const gross = dashboardSales.reduce((s, i) => s + i.quantity * (i.unit_price - i.unit_cost), 0);
   const dashboardExpenseTotal = dashboardExpenses.reduce((s, i) => s + Number(i.amount), 0);
-  const soldByItem = sales.reduce<Record<string, number>>((m, s) => { m[s.item_id] = (m[s.item_id] || 0) + s.quantity; return m; }, {});
-  const overallCount = (i: Item) => i.quantity + (soldByItem[i.id] || 0);
   const lowStock = activeItems.filter(i => i.quantity <= LOW_STOCK).sort((a, b) => a.quantity - b.quantity);
 
   const matches = (i: Item) =>
@@ -733,7 +742,7 @@ export default function Home() {
           )}
           {tab === 'Inventory' && (
             <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}>
-              <Plus size={18} aria-hidden="true" /> Add stock
+              <Plus size={18} aria-hidden="true" /> New item
             </button>
           )}
           {tab === 'Expenses' && (
@@ -868,71 +877,67 @@ export default function Home() {
           activeItems.length === 0 ? (
             <section className="panel empty-block">
               <p>You have no stock yet. Add your first item to get started.</p>
-              <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}><Plus size={18} aria-hidden="true" /> Add stock</button>
+              <button type="button" className="btn btn-primary" onClick={() => openItemModal(null)}><Plus size={18} aria-hidden="true" /> New item</button>
             </section>
           ) : (
             <>
               <Toolbar label="Search inventory" query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} options={usedCategories} shown={shownItems.length} total={activeItems.length} />
               {shownItems.length === 0 ? noMatch : (
                 <>
-                  <section className="panel stock-table" aria-label="All inventory">
+                  <section className="panel stock-table inventory-table" aria-label="All inventory">
                     <div className="tablewrap" tabIndex={0} role="region" aria-label="Inventory table">
                       <table>
                         <thead>
                           <tr>
                             <th scope="col">Item</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Overall count</th>
                             <th scope="col">In stock</th>
-                            <th scope="col">Buying price</th>
-                            <th scope="col">Selling price</th>
-                            <th scope="col">Profit each</th>
-                            <th scope="col"><span className="sr-only">Actions</span></th>
+                            <th scope="col">Selling each</th>
+                            <th scope="col">Total cost</th>
+                            <th scope="col" title="Possible profit if all units in stock sell at their listed prices">Total profit</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {shownItems.map(i => (
                             <tr key={i.id}>
-                              <td className="name">{i.name}</td>
-                              <td>{i.category}</td>
-                              <td>{overallCount(i)}</td>
-                              <td><StockCount quantity={i.quantity} /></td>
-                              <td>{money(i.cost)}</td>
+                              <td className="inventory-name"><InventoryItemLabel item={i} /></td>
+                              <td><strong className="inventory-quantity">{i.quantity}</strong></td>
                               <td>{money(i.price)}</td>
-                              <td>{money(i.price - i.cost)}</td>
-                              <td>
+                              <td>{money(i.quantity * i.cost)}</td>
+                              <td>{money(i.quantity * (i.price - i.cost))}</td>
+                              <td><InventoryStatus quantity={i.quantity} /></td>
+                              <td><span className="inventory-actions">
                                 <button type="button" className="btn btn-secondary" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}>
                                   <Pencil size={16} aria-hidden="true" /> Edit
                                 </button>
                                 <button type="button" className="icon-btn" aria-label={`Remove ${i.name}`} title={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}>
                                   <Trash2 size={17} aria-hidden="true" />
                                 </button>
-                              </td>
+                              </span></td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   </section>
-                  <ul className="stock-cards" aria-label="All inventory">
+                  <ul className="stock-cards inventory-cards" aria-label="All inventory">
                     {shownItems.map(i => (
-                      <li className="stock-card" key={i.id}>
-                        <div className="stock-card-head">
-                          <span className="stock-card-name">{i.name}<small>{i.category}</small></span>
-                          <span>{i.quantity > LOW_STOCK ? `${i.quantity} in stock` : <StockCount quantity={i.quantity} />}</span>
+                      <li className="stock-card inventory-card" key={i.id}>
+                        <div className="inventory-card-head">
+                          <InventoryItemLabel item={i} />
+                          <InventoryStatus quantity={i.quantity} />
                         </div>
-                        <dl>
-                          <div><dt>Overall count</dt><dd>{overallCount(i)}</dd></div>
-                          <div><dt>Buying</dt><dd>{money(i.cost)}</dd></div>
-                          <div><dt>Selling</dt><dd>{money(i.price)}</dd></div>
-                          <div><dt>Profit each</dt><dd>{money(i.price - i.cost)}</dd></div>
+                        <div className="inventory-card-stock"><span>In stock</span><strong>{i.quantity}</strong></div>
+                        <dl className="inventory-card-totals">
+                          <div><dt>Selling each</dt><dd>{money(i.price)}</dd></div>
+                          <div><dt>Total cost</dt><dd>{money(i.quantity * i.cost)}</dd></div>
+                          <div><dt>Total profit</dt><dd>{money(i.quantity * (i.price - i.cost))}</dd></div>
                         </dl>
-                        <button type="button" className="btn btn-secondary" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}>
-                          <Pencil size={16} aria-hidden="true" /> Edit
-                        </button>
-                        <button type="button" className="btn btn-secondary" aria-label={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}>
-                          <Trash2 size={16} aria-hidden="true" /> Remove
-                        </button>
+                        <div className="inventory-actions">
+                          <button type="button" className="btn btn-secondary" aria-label={`Edit ${i.name}`} onClick={() => openItemModal(i)}><Pencil size={16} aria-hidden="true" /> Edit</button>
+                          <button type="button" className="icon-btn" aria-label={`Remove ${i.name}`} title={`Remove ${i.name}`} onClick={() => askToRemoveItem(i)}><Trash2 size={17} aria-hidden="true" /></button>
+                        </div>
                       </li>
                     ))}
                   </ul>

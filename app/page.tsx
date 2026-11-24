@@ -439,7 +439,7 @@ export default function Home() {
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>('today');
   const [dashboardFrom, setDashboardFrom] = useState('');
   const [dashboardTo, setDashboardTo] = useState('');
-  const [expensePeriod, setExpensePeriod] = useState<DashboardPeriod>('today');
+  const [expensePeriod, setExpensePeriod] = useState<DashboardPeriod>('all');
   const [expenseFrom, setExpenseFrom] = useState('');
   const [expenseTo, setExpenseTo] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory | 'all'>('all');

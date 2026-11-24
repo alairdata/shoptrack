@@ -443,6 +443,9 @@ export default function Home() {
   const [expensePeriod, setExpensePeriod] = useState<DashboardPeriod>('all');
   const [expenseFrom, setExpenseFrom] = useState('');
   const [expenseTo, setExpenseTo] = useState('');
+  const [soldPeriod, setSoldPeriod] = useState<DashboardPeriod>('all');
+  const [soldFrom, setSoldFrom] = useState('');
+  const [soldTo, setSoldTo] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory | 'all'>('all');
   const [expenseMember, setExpenseMember] = useState<FamilyMember | 'all' | 'unassigned'>('all');
   const heading = useRef<HTMLHeadingElement>(null);
@@ -745,6 +748,9 @@ export default function Home() {
   const expenseRange = dashboardDates(expensePeriod, expenseFrom, expenseTo, now);
   const validExpenseRange = expensePeriod !== 'custom' || (!!expenseFrom && !!expenseTo && expenseFrom <= expenseTo);
   const expenseHistory = expenses.filter(e => validExpenseRange && (!expenseRange || (new Date(e.created_at) >= expenseRange[0] && new Date(e.created_at) < expenseRange[1])));
+  const soldRange = dashboardDates(soldPeriod, soldFrom, soldTo, now);
+  const validSoldRange = soldPeriod !== 'custom' || (!!soldFrom && !!soldTo && soldFrom <= soldTo);
+  const soldHistory = sales.filter(s => validSoldRange && (!soldRange || (new Date(s.created_at) >= soldRange[0] && new Date(s.created_at) < soldRange[1])));
   const expenseTotal = expenseHistory.reduce((s, i) => s + Number(i.amount), 0);
   const expenseEntries = expenseHistory.map(expense => ({expense, details: readExpensePurpose(expense.purpose)}));
   const visibleExpenses = expenseEntries.filter(({details}) =>
@@ -761,9 +767,9 @@ export default function Home() {
   const shownSellable = sellable.filter(matches);
   const categoryOf = new Map(items.map(i => [i.id, i.category]));
   const saleCategory = (s: Sale) => categoryOf.get(s.item_id) ?? '';
-  const soldCategories = Array.from(new Set(sales.map(saleCategory).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-  const discountedSales = sales.filter(isDiscounted);
-  const shownSales = sales.filter(s =>
+  const soldCategories = Array.from(new Set(soldHistory.map(saleCategory).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const discountedSales = soldHistory.filter(isDiscounted);
+  const shownSales = soldHistory.filter(s =>
     (!discountOnly || isDiscounted(s)) &&
     (!filter || saleCategory(s) === filter) &&
     (!query.trim() || `${s.item_name} ${saleCategory(s)}`.toLowerCase().includes(query.trim().toLowerCase())));
@@ -817,6 +823,9 @@ export default function Home() {
           )}
           {tab === 'Dashboard' && (
             <PeriodFilter label="Dashboard period" period={dashboardPeriod} setPeriod={setDashboardPeriod} from={dashboardFrom} setFrom={setDashboardFrom} to={dashboardTo} setTo={setDashboardTo} range={dateRange} valid={validDashboardRange} />
+          )}
+          {tab === 'Sold items' && (
+            <PeriodFilter label="Sold items period" period={soldPeriod} setPeriod={setSoldPeriod} from={soldFrom} setFrom={setSoldFrom} to={soldTo} setTo={setSoldTo} range={soldRange} valid={validSoldRange} />
           )}
           {tab === 'Expenses' && (
             <div className="expenses-head-actions">
@@ -1048,7 +1057,7 @@ export default function Home() {
             </section>
           ) : (
             <>
-              <Toolbar label="Search sold items" query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} options={soldCategories} shown={shownSales.length} total={sales.length} noun="sale" />
+              <Toolbar label="Search sold items" query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} options={soldCategories} shown={shownSales.length} total={soldHistory.length} noun="sale" />
               {discountedSales.length > 0 && (
                 <div className="discount-bar">
                   <button type="button" className="chip" aria-pressed={discountOnly} onClick={() => setDiscountOnly(v => !v)}>
@@ -1057,7 +1066,7 @@ export default function Home() {
                   <span>{discountedSales.length} {discountedSales.length === 1 ? 'sale' : 'sales'} · {money(discountedSales.reduce((n, s) => n + s.quantity * discountEach(s), 0))} given in discounts</span>
                 </div>
               )}
-              {shownSales.length === 0 ? <p className="empty-block">No sold items match your search.</p> : (
+              {shownSales.length === 0 ? <p className="empty-block">No sold items match this selection.</p> : (
                 <>
                   <section className="stats stats-sold" aria-label="Totals for the sales listed">
                     <div className="stat"><span className="stat-label">Units sold</span><strong className="stat-value">{shownSales.reduce((n, s) => n + s.quantity, 0)}</strong></div>
@@ -1206,9 +1215,9 @@ export default function Home() {
 
       <nav className="bottomnav" aria-label="Main">
         {tabs.filter(t => t.name !== 'Admin' && t.name !== 'Inventory').map(({name, short, icon: Icon}) => (
-          <button key={name} type="button" aria-current={tab === name ? 'page' : undefined} onClick={() => goTo(name)}>
-            <Icon size={20} aria-hidden="true" />
-            {short}
+          <button key={name} type="button" className={name === 'Sell' ? 'bottomnav-sell' : undefined} aria-label={name === 'Sell' ? 'Sell' : undefined} aria-current={tab === name ? 'page' : undefined} onClick={() => goTo(name)}>
+            <Icon size={name === 'Sell' ? 27 : 20} aria-hidden="true" />
+            {name !== 'Sell' && short}
           </button>
         ))}
       </nav>

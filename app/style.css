@@ -539,6 +539,20 @@ td.name { white-space: normal; min-width: 11rem; font-weight: 700; }
     font-weight: 600;
   }
   .bottomnav button[aria-current='page'] { background: var(--tint); color: var(--green-900); font-weight: 800; }
+  .bottomnav button.bottomnav-sell {
+    flex: 0 0 3.5rem;
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    min-height: 3.5rem;
+    margin-top: -0.5rem;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--green-900);
+    color: #fff;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+  }
+  .bottomnav button.bottomnav-sell[aria-current='page'] { background: var(--lime); color: var(--green-900); }
 }
 
 /* Five tabs need slightly smaller labels on the narrowest phones. */
